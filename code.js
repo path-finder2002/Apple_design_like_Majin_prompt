@@ -4,14 +4,15 @@
 * Version: 17.0 (Generalized Version)
 * Prompt Design: まじん式プロンプト
 * Author: Googleスライド自動生成マスター
-* Description: 指定されたslideData配列とカスタムメニューの設定に基づき、Googleのデザイン原則に準拠したスライドを生成します。
+* Description: 選択したMVPデッキとカスタムメニューの設定に基づき、Googleのデザイン原則に準拠したスライドを生成します。
 */
 
 
 // --- 1. 実行設定 ---
 const SETTINGS = {
 SHOULD_CLEAR_ALL_SLIDES: true,
-TARGET_PRESENTATION_ID: null
+TARGET_PRESENTATION_ID: null,
+DEFAULT_MVP_KEY: 'all'
 };
 
 // --- 2. マスターデザイン設定 (Pixel Perfect Ver.) ---
@@ -154,46 +155,327 @@ closing: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_
 FOOTER_TEXT: `© ${new Date().getFullYear()} Google Inc.`
 };
 
-// --- 3. スライドデータ（サンプル：必ず置換してください） ---
-const slideData = [
-  { type: 'title', title: 'Google Workspace 新機能提案', date: '2025.08.24', notes: '本日は、AIを活用した新しいコラボレーション機能についてご提案します。' },
-  {
-    type: 'bulletCards',
-    title: '提案する3つの新機能',
-    subhead: 'チームの生産性をさらに向上させるためのコンセプト',
-    items: [
+const MVP_DECK_LABELS = {
+  all: '全テンプレートショーケース',
+  title: 'カバースライドMVP',
+  section: 'セクションスライドMVP',
+  content: 'コンテンツスライドMVP',
+  statsCompare: '数値比較スライドMVP',
+  compare: '比較スライドMVP',
+  process: 'プロセススライドMVP',
+  timeline: 'タイムラインスライドMVP',
+  diagram: 'ダイアグラムスライドMVP',
+  cards: 'カードレイアウトMVP',
+  headerCards: 'ヘッダーカードMVP',
+  table: '表レイアウトMVP',
+  progress: '進捗バーMVP',
+  quote: '引用スライドMVP',
+  kpi: 'KPIスライドMVP',
+  bulletCards: '箇条書きカードMVP',
+  faq: 'FAQスライドMVP',
+  closing: 'クロージングスライドMVP'
+};
+
+const MVP_DECKS = buildMvpDecks();
+
+function resolveActiveMvpKey(requestedKey) {
+  return (requestedKey && MVP_DECKS[requestedKey]) ? requestedKey : SETTINGS.DEFAULT_MVP_KEY;
+}
+
+function cloneDeckByKey(key) {
+  const source = MVP_DECKS[key] || MVP_DECKS[SETTINGS.DEFAULT_MVP_KEY];
+  return source.map(cloneObject);
+}
+
+function buildMvpDecks() {
+  const decks = {};
+  decks.all = makeDeck([
+    createSectionSlideData(),
+    createContentSlideData(),
+    createStatsCompareSlideData(),
+    createCompareSlideData(),
+    createProcessSlideData(),
+    createTimelineSlideData(),
+    createDiagramSlideData(),
+    createCardsSlideData(),
+    createHeaderCardsSlideData(),
+    createTableSlideData(),
+    createProgressSlideData(),
+    createQuoteSlideData(),
+    createKpiSlideData(),
+    createBulletCardsSlideData(),
+    createFaqSlideData()
+  ]);
+
+  decks.title = makeDeck([], { includeClosing: false });
+  decks.section = makeDeck([createSectionSlideData()]);
+  decks.content = makeDeck([createContentSlideData()]);
+  decks.statsCompare = makeDeck([createStatsCompareSlideData()]);
+  decks.compare = makeDeck([createCompareSlideData()]);
+  decks.process = makeDeck([createProcessSlideData()]);
+  decks.timeline = makeDeck([createTimelineSlideData()]);
+  decks.diagram = makeDeck([createDiagramSlideData()]);
+  decks.cards = makeDeck([createCardsSlideData()]);
+  decks.headerCards = makeDeck([createHeaderCardsSlideData()]);
+  decks.table = makeDeck([createTableSlideData()]);
+  decks.progress = makeDeck([createProgressSlideData()]);
+  decks.quote = makeDeck([createQuoteSlideData()]);
+  decks.kpi = makeDeck([createKpiSlideData()]);
+  decks.bulletCards = makeDeck([createBulletCardsSlideData()]);
+  decks.faq = makeDeck([createFaqSlideData()]);
+  decks.closing = makeDeck([createClosingSlideData()], { includeTitle: false, includeClosing: false });
+
+  return decks;
+}
+
+function makeDeck(bodySlides, options = {}) {
+  const slides = [];
+  if (options.includeTitle !== false) slides.push(createTitleSlideData(options.titleOverrides));
+  slides.push(...bodySlides.map(cloneObject));
+  if (options.includeClosing !== false) slides.push(createClosingSlideData(options.closingOverrides));
+  return slides;
+}
+
+function createTitleSlideData(overrides = {}) {
+  return Object.assign({
+    type: 'title',
+    title: 'Apple Design MVP',
+    date: '2025.09.23',
+    notes: 'AppleテイストのジェネレーターMVPをカバー単体で検証するためのサンプルです。'
+  }, overrides || {});
+}
+
+function createSectionSlideData(overrides = {}) {
+  return Object.assign({
+    type: 'section',
+    title: '01. 体験ビジョン',
+    notes: 'セクションスライドの余白とゴースト番号を確認する最小構成です。'
+  }, overrides || {});
+}
+
+function createContentSlideData(overrides = {}) {
+  return Object.assign({
+    type: 'content',
+    title: 'デザイン原則の要約',
+    points: [
+      '意図的な余白で呼吸感をつくる',
+      'タイポグラフィの階層で視線を制御する',
+      'アクセントカラーは一点に集約する'
+    ],
+    notes: 'コンテンツスライドでの箇条書きと余白のバランスを検証します。'
+  }, overrides || {});
+}
+
+function createStatsCompareSlideData(overrides = {}) {
+  return Object.assign({
+    type: 'statsCompare',
+    title: '主要指標の比較',
+    subhead: '現状指標と目標指標の差分を視覚化',
+    leftTitle: '現状',
+    rightTitle: '目標',
+    stats: [
+      { label: 'NPS', leftValue: '42', rightValue: '65', trend: 'up' },
+      { label: '体験満足度', leftValue: '3.8', rightValue: '4.5', trend: 'up' },
+      { label: '導入コスト', leftValue: '120万', rightValue: '80万', trend: 'down' }
+    ],
+    notes: '数値比較テンプレートの色と整列を確認するMVPです。'
+  }, overrides || {});
+}
+
+function createCompareSlideData(overrides = {}) {
+  return Object.assign({
+    type: 'compare',
+    title: 'プラン比較',
+    leftTitle: 'Standard プラン',
+    rightTitle: 'Pro プラン',
+    leftItems: [
+      '基本的なAppleスタイルテーマ',
+      '最大10枚の自動生成',
+      'アクセントカラー固定'
+    ],
+    rightItems: [
+      '拡張テーマとトークン編集',
+      '最大30枚＆スプレッドシート連携',
+      'アクセントカラーを自由指定'
+    ],
+    notes: '対比レイアウトの余白とヘッダーバーのスタイルを検証します。'
+  }, overrides || {});
+}
+
+function createProcessSlideData(overrides = {}) {
+  return Object.assign({
+    type: 'process',
+    title: 'デザインプロセス',
+    subhead: 'Discovery から Launch までの流れ',
+    steps: [
+      'Discovery スプリント',
+      'ビジュアル方向性レビュー',
+      'トークン適用と実装',
+      'ユーザーテストとローンチ準備'
+    ],
+    notes: '縦プロセスの矢印と番号スタイルを検証します。'
+  }, overrides || {});
+}
+
+function createTimelineSlideData(overrides = {}) {
+  return Object.assign({
+    type: 'timeline',
+    title: 'リリースロードマップ',
+    milestones: [
+      { label: 'Kickoff', date: '2025 Q1' },
+      { label: 'Design Freeze', date: '2025 Q2' },
+      { label: 'Pilot', date: '2025 Q3' },
+      { label: 'Launch', date: '2025 Q4' }
+    ],
+    notes: 'タイムラインの配色とラベル位置を確認するMVPです。'
+  }, overrides || {});
+}
+
+function createDiagramSlideData(overrides = {}) {
+  return Object.assign({
+    type: 'diagram',
+    title: 'エクスペリエンスフロー',
+    subhead: '主要なタッチポイントを整理',
+    lanes: [
       {
-        title: 'AIミーティングサマリー',
-        desc: 'Google Meetでの会議内容をAIが自動で要約し、[[決定事項とToDoリストを自動生成]]します。'
+        title: 'Discover',
+        items: ['ヒアリング', '課題定義']
       },
       {
-        title: 'スマート・ドキュメント連携',
-        desc: 'DocsやSheetsで関連するファイルやデータをAIが予測し、[[ワンクリックで参照・引用]]できるようにします。'
+        title: 'Design',
+        items: ['トークン設計', 'レイアウト検証']
       },
       {
-        title: 'インタラクティブ・チャット',
-        desc: 'Google Chat内で簡易的なアンケートや投票、承認フローを[[コマンド一つで実行]]可能にします。'
+        title: 'Deliver',
+        items: ['リハーサル', '本番運用']
       }
     ],
-    notes: '今回ご提案するのは、この3つの新機能です。それぞれが日々の業務の非効率を解消し、チーム全体の生産性向上を目指しています。'
-  },
-  {
-    type: 'faq',
-    title: '想定されるご質問',
-    subhead: '本提案に関するQ&A',
+    notes: 'レーンとカードの間隔、矢印接続をチェックするMVPです。'
+  }, overrides || {});
+}
+
+function createCardsSlideData(overrides = {}) {
+  return Object.assign({
+    type: 'cards',
+    title: '特徴のハイライト',
+    subhead: 'Appleらしい余白と影響力のあるキーメッセージ',
     items: [
-      { q: '既存のプランで利用できますか？', a: 'はい、Business Standard以上のすべてのプランで、追加料金なしでご利用いただける想定です。' },
-      { q: '対応言語はどうなりますか？', a: '初期リリースでは日本語と英語に対応し、順次対応言語を拡大していく計画です。' },
-      { q: 'セキュリティは考慮されていますか？', a: 'もちろんです。すべてのデータは既存のGoogle Workspaceの[[堅牢なセキュリティ基準]]に準拠して処理されます。' }
+      { title: 'Minimal', desc: '不要な装飾を排し、余白で魅せる構成。' },
+      { title: 'Focused', desc: '一枚一メッセージで訴求ポイントを明確化。' },
+      { title: 'Consistent', desc: 'トークン化したスタイルで再現性を担保。' },
+      { title: 'Adaptive', desc: 'ライト／ダークテーマを簡単に切替可能。' }
     ],
-    notes: 'ご提案にあたり、想定される質問をまとめました。ご不明な点がございましたら、お気軽にご質問ください。'
-  },
-  { type: 'closing', notes: '本日のご提案は以上です。ご清聴いただき、ありがとうございました。' }
-];
+    notes: 'シンプルカードの列バランスとテキストスタイルを確認します。'
+  }, overrides || {});
+}
+
+function createHeaderCardsSlideData(overrides = {}) {
+  return Object.assign({
+    type: 'headerCards',
+    title: '導入効果',
+    subhead: 'ステークホルダー別の価値訴求',
+    items: [
+      { title: '経営陣', desc: 'ブランドトーンを短時間で整え、意思決定を加速。' },
+      { title: 'PM', desc: 'テンプレート化でメッセージ整理が容易に。' },
+      { title: 'デザイナー', desc: '細部の調整に集中でき、反復作業を削減。' }
+    ],
+    notes: 'ヘッダー一体型カードの色とテキスト余白を検証します。'
+  }, overrides || {});
+}
+
+function createTableSlideData(overrides = {}) {
+  return Object.assign({
+    type: 'table',
+    title: 'ロードマップ進捗表',
+    subhead: '各フェーズの状態とアクション',
+    headers: ['フェーズ', 'ステータス', '次のアクション'],
+    rows: [
+      ['Discovery', '完了', '成果の共有資料を整える'],
+      ['Design', '進行中', 'トークン適用の最終調整'],
+      ['Pilot', '未着手', 'パイロットユーザー選定']
+    ],
+    notes: '表レイアウトでのヘッダー色とセル整列をチェックします。'
+  }, overrides || {});
+}
+
+function createProgressSlideData(overrides = {}) {
+  return Object.assign({
+    type: 'progress',
+    title: 'タスク進捗',
+    subhead: '主要タスクを可視化',
+    items: [
+      { label: 'デザイン言語定義', percent: 85 },
+      { label: 'テンプレート実装', percent: 60 },
+      { label: 'レビュー＆微調整', percent: 35 }
+    ],
+    notes: '進捗バーの割合と数値表示を検証します。'
+  }, overrides || {});
+}
+
+function createQuoteSlideData(overrides = {}) {
+  return Object.assign({
+    type: 'quote',
+    title: '体験を導く言葉',
+    text: 'デザインは見た目だけでなく、どのように機能するかだ。',
+    author: 'Steve Jobs',
+    notes: '引用スライドの余白とアクセントのバランス確認用です。'
+  }, overrides || {});
+}
+
+function createKpiSlideData(overrides = {}) {
+  return Object.assign({
+    type: 'kpi',
+    title: '注力すべきKPI',
+    items: [
+      { label: 'Weekly Active Users', value: '1.2M', change: '+12% vs LW', status: 'good' },
+      { label: 'Conversion Rate', value: '8.4%', change: '+1.1pt', status: 'good' },
+      { label: 'Time to Deck', value: '18min', change: '-7min vs baseline', status: 'good' }
+    ],
+    notes: 'KPIカードの縦配置と色味を確認するMVPです。'
+  }, overrides || {});
+}
+
+function createBulletCardsSlideData(overrides = {}) {
+  return Object.assign({
+    type: 'bulletCards',
+    title: '導入のメリット',
+    items: [
+      { title: 'ブランド整合性', desc: 'Appleらしいトーンを即座に再現できるプリセット。' },
+      { title: '制作スピード', desc: '30分以内で10枚の資料を組み上げるワークフロー。' },
+      { title: '再利用性', desc: 'トークン変更で他案件にも横展開しやすい設計。' }
+    ],
+    notes: 'カード型箇条書きの高さとテキストスタイルを検証します。'
+  }, overrides || {});
+}
+
+function createFaqSlideData(overrides = {}) {
+  return Object.assign({
+    type: 'faq',
+    title: 'よくある質問',
+    items: [
+      { q: '生成されたスライドは編集できますか？', a: 'はい、生成後は通常のSlides編集と同じように変更できます。' },
+      { q: 'ライト/ダークテーマの切替は可能ですか？', a: '将来的な対応を見据え、設定メニューでトグル予定です。' },
+      { q: '画像は自動で挿入されますか？', a: 'MVPではプレースホルダーでの対応となります。' }
+    ],
+    notes: 'FAQ配置と質疑応答のフォーマットを確認します。'
+  }, overrides || {});
+}
+
+function createClosingSlideData(overrides = {}) {
+  return Object.assign({
+    type: 'closing',
+    notes: 'MVPのご確認ありがとうございました。フィードバックをお待ちしています。'
+  }, overrides || {});
+}
+
+function cloneObject(value) {
+  return JSON.parse(JSON.stringify(value));
+}
 
 
 // --- 4. メイン実行関数（エントリーポイント） ---
 let __SECTION_COUNTER = 0; // 章番号カウンタ（ゴースト数字用）
+let __CURRENT_SLIDE_DECK = []; // アジェンダ生成用の参照データ
 
 /**
  * プレゼンテーション生成のメイン関数
@@ -207,6 +489,11 @@ function generatePresentation() {
   if (userSettings.headerLogoUrl) CONFIG.LOGOS.header = userSettings.headerLogoUrl;
   if (userSettings.closingLogoUrl) CONFIG.LOGOS.closing = userSettings.closingLogoUrl;
   if (userSettings.fontFamily) CONFIG.FONTS.family = userSettings.fontFamily;
+
+  const activeMvpKey = resolveActiveMvpKey(userSettings.activeMvpKey);
+  const deck = cloneDeckByKey(activeMvpKey);
+  __CURRENT_SLIDE_DECK = deck;
+  Logger.log(`Active MVP deck: ${activeMvpKey}`);
 
   let presentation;
   try {
@@ -225,7 +512,7 @@ function generatePresentation() {
     const layout = createLayoutManager(presentation.getPageWidth(), presentation.getPageHeight());
 
     let pageCounter = 0;
-    for (const data of slideData) {
+    for (const data of deck) {
       try {
         const generator = slideGenerators[data.type];
         if (data.type !== 'title' && data.type !== 'closing') pageCounter++;
@@ -251,6 +538,8 @@ function generatePresentation() {
 
   } catch (e) {
     Logger.log(`処理が中断されました: ${e.message}\nStack: ${e.stack}`);
+  } finally {
+    __CURRENT_SLIDE_DECK = [];
   }
 }
 
@@ -265,7 +554,8 @@ function onOpen(e) {
       .addItem('フォント', 'setFont')
       .addItem('フッターテキスト', 'setFooterText')
       .addItem('ヘッダーロゴ', 'setHeaderLogo')
-      .addItem('クロージングロゴ', 'setClosingLogo'))
+      .addItem('クロージングロゴ', 'setClosingLogo')
+      .addItem('MVPデッキ', 'setActiveMvpDeck'))
     .addItem('🔄 リセット', 'resetSettings')
     .addToUi();
 }
@@ -403,6 +693,43 @@ function setClosingLogo() {
       props.setProperty('closingLogoUrl', value);
       ui.alert('クロージングロゴを保存しました。');
     }
+  }
+}
+
+function setActiveMvpDeck() {
+  const ui = SlidesApp.getUi();
+  const props = PropertiesService.getScriptProperties();
+  const currentKey = props.getProperty('activeMvpKey') || SETTINGS.DEFAULT_MVP_KEY;
+  const keys = Object.keys(MVP_DECKS);
+
+  const deckList = keys.map((key, index) => {
+    const label = MVP_DECK_LABELS[key] || key;
+    const suffix = key === currentKey ? ' (現在)' : '';
+    return `${index + 1}. ${label}${suffix}`;
+  }).join('\n');
+
+  const result = ui.prompt(
+    'MVPデッキの選択',
+    `生成するデッキの番号を入力してください:\n\n${deckList}\n\n空欄入力で既定値にリセットします。`,
+    ui.ButtonSet.OK_CANCEL
+  );
+
+  if (result.getSelectedButton() !== ui.Button.OK) return;
+
+  const value = result.getResponseText().trim();
+  if (value === '') {
+    props.deleteProperty('activeMvpKey');
+    ui.alert('MVPデッキを既定設定に戻しました。');
+    return;
+  }
+
+  const index = Number(value) - 1;
+  if (Number.isInteger(index) && index >= 0 && index < keys.length) {
+    const newKey = keys[index];
+    props.setProperty('activeMvpKey', newKey);
+    ui.alert(`MVPデッキを「${MVP_DECK_LABELS[newKey] || newKey}」に更新しました。`);
+  } else {
+    ui.alert('無効な番号です。設定をキャンセルしました。');
   }
 }
 
@@ -1972,16 +2299,21 @@ return /(agenda|アジェンダ|目次|本日お伝えすること)/.test(t);
 }
 
 function buildAgendaFromSlideData() {
-const pts = [];
-for (const d of slideData) {
-if (d && d.type === 'section' && typeof d.title === 'string' && d.title.trim()) pts.push(d.title.trim());
-}
-if (pts.length > 0) return pts.slice(0, 5);
-const alt = [];
-for (const d of slideData) {
-if (d && d.type === 'content' && typeof d.title === 'string' && d.title.trim()) alt.push(d.title.trim());
-}
-return alt.slice(0, 5);
+  const deck = (__CURRENT_SLIDE_DECK && __CURRENT_SLIDE_DECK.length > 0)
+    ? __CURRENT_SLIDE_DECK
+    : MVP_DECKS[SETTINGS.DEFAULT_MVP_KEY] || [];
+
+  const pts = [];
+  for (const d of deck) {
+    if (d && d.type === 'section' && typeof d.title === 'string' && d.title.trim()) pts.push(d.title.trim());
+  }
+  if (pts.length > 0) return pts.slice(0, 5);
+
+  const alt = [];
+  for (const d of deck) {
+    if (d && d.type === 'content' && typeof d.title === 'string' && d.title.trim()) alt.push(d.title.trim());
+  }
+  return alt.slice(0, 5);
 }
 
 function drawArrowBetweenRects(slide, a, b, arrowH, arrowGap) {
