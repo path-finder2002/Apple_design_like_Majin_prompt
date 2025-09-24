@@ -1,0 +1,12 @@
+# Dependencies
+/node_modules
+
+# clasp
+.clasp.json
+
+# macOS
+.DS_Store
+
+# Build
+/build
+/dist
