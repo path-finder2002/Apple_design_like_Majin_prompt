@@ -343,14 +343,18 @@ function applyTheme(themeKey) {
 }
 
 function applyThemeForGeneration(themeMode) {
-  const requested = themeMode && THEMES[themeMode] ? themeMode : THEMES.light.key;
-  return applyTheme(requested);
+  if (themeMode && THEMES[themeMode]) {
+    return applyTheme(themeMode);
+  }
+  return ensureTheme();
 }
 
 function ensureTheme() {
   const props = PropertiesService.getScriptProperties();
   const storedTheme = props.getProperty('themeMode');
-  return applyThemeForGeneration(storedTheme);
+  const resolvedTheme = storedTheme && THEMES[storedTheme] ? storedTheme : THEMES.light.key;
+  if (resolvedTheme !== storedTheme) props.setProperty('themeMode', resolvedTheme);
+  return applyTheme(resolvedTheme);
 }
 
 function getActiveTheme() {
@@ -363,8 +367,7 @@ function getThemeToggleMenuLabel() {
 
 function toggleTheme() {
   const props = PropertiesService.getScriptProperties();
-  const stored = props.getProperty('themeMode');
-  const current = THEMES[stored] ? stored : getActiveTheme();
+  const current = ensureTheme();
   const next = current === THEMES.dark.key ? THEMES.light.key : THEMES.dark.key;
 
   props.setProperty('themeMode', next);
@@ -2260,5 +2263,23 @@ const newR = Math.max(0, Math.min(255, Math.round(r * factor)));
 const newG = Math.max(0, Math.min(255, Math.round(g * factor)));
 const newB = Math.max(0, Math.min(255, Math.round(b * factor)));
 return '#' + ((1 << 24) + (newR << 16) + (newG << 8) + newB).toString(16).slice(1);
+}
+
+function logInfo(message, meta) {
+  if (meta && typeof meta === 'object') {
+    try {
+      Logger.log(`[Majin] ${message} :: ${JSON.stringify(meta)}`);
+      return;
+    } catch (e) {
+      Logger.log(`[Majin] ${message} :: ${meta}`);
+      return;
+    }
+  }
+  Logger.log(`[Majin] ${message}`);
+}
+
+function logError(message, error) {
+  const payload = error && error.stack ? error.stack : (error && error.message) ? error.message : error;
+  Logger.log(`[Majin][Error] ${message} :: ${payload}`);
 }
 ```
