@@ -138,7 +138,7 @@ processStep: 14, axis: 12, ghostNum: 180
 COLORS: {
 canvas: '#FFFFFF',
 primary_color: '#4285F4',
-text_primary: '#333333',
+text_primary: '#000000',
 background_white: '#FFFFFF',
 background_gray: '#f8f9fa',
 faint_gray: '#e8eaed',
@@ -163,6 +163,94 @@ closing: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_
 
 FOOTER_TEXT: `© ${new Date().getFullYear()} Google Inc.`
 };
+
+const THEMES = {
+light: {
+  key: 'light',
+  label: 'ライトテーマ',
+  colors: {
+    canvas: '#FFFFFF',
+    primary_color: '#4285F4',
+    text_primary: '#000000',
+    background_white: '#FFFFFF',
+    background_gray: '#f8f9fa',
+    faint_gray: '#e8eaed',
+    lane_title_bg: '#f8f9fa',
+    table_header_bg: '#f8f9fa',
+    lane_border: '#dadce0',
+    card_bg: '#ffffff',
+    card_border: '#dadce0',
+    neutral_gray: '#9e9e9e',
+    ghost_gray: '#efefed',
+    text_on_primary: '#FFFFFF'
+  }
+},
+dark: {
+  key: 'dark',
+  label: 'ダークテーマ',
+  colors: {
+    canvas: '#202124',
+    primary_color: '#8AB4F8',
+    text_primary: '#FFFFFF',
+    background_white: '#1f1f1f',
+    background_gray: '#2b2c2f',
+    faint_gray: '#3c4043',
+    lane_title_bg: '#2b2c2f',
+    table_header_bg: '#2b2c2f',
+    lane_border: '#44464a',
+    card_bg: '#1f1f1f',
+    card_border: '#3c4043',
+    neutral_gray: '#b0b0b0',
+    ghost_gray: '#2f3032',
+    text_on_primary: '#202124'
+  }
+}
+};
+
+let __ACTIVE_THEME = THEMES.light.key;
+
+function applyTheme(themeKey) {
+  const target = THEMES[themeKey] || THEMES.light;
+  Object.keys(target.colors).forEach(key => {
+    CONFIG.COLORS[key] = target.colors[key];
+  });
+  __ACTIVE_THEME = target.key;
+  return target.key;
+}
+
+function applyThemeForGeneration(themeMode) {
+  const requested = themeMode && THEMES[themeMode] ? themeMode : THEMES.light.key;
+  return applyTheme(requested);
+}
+
+function ensureTheme() {
+  const props = PropertiesService.getScriptProperties();
+  const storedTheme = props.getProperty('themeMode');
+  return applyThemeForGeneration(storedTheme);
+}
+
+function getActiveTheme() {
+  return __ACTIVE_THEME;
+}
+
+function getThemeToggleMenuLabel() {
+  return getActiveTheme() === THEMES.dark.key ? '☀️ ライトテーマに切替' : '🌙 ダークテーマに切替';
+}
+
+function toggleTheme() {
+  const props = PropertiesService.getScriptProperties();
+  const current = ensureTheme();
+  const next = current === THEMES.dark.key ? THEMES.light.key : THEMES.dark.key;
+  props.setProperty('themeMode', next);
+  applyThemeForGeneration(next);
+  try {
+    onOpen();
+  } catch (e) {
+    logError('toggleTheme:onOpenRefreshFailed', e);
+  }
+  SlidesApp.getUi().alert(`${THEMES[next].label}に切り替えました。`);
+  logInfo('toggleTheme:updated', { theme: next });
+}
 
 // --- 3. スライドデータ（サンプル：必ず置換してください） ---
 const slideData = [
