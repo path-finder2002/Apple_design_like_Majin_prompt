@@ -282,7 +282,8 @@ function onOpen(e) {
       .addItem('クロージングロゴ', 'setClosingLogo'))
     .addSeparator()
     .addSubMenu(ui.createMenu('テキスト編集')
-      .addItem('太字/解除', 'toggleBold'))
+      .addItem('太字/解除', 'toggleBold')
+      .addItem('全スライド太字/解除', 'toggleBoldAllSlides'))
     .addSeparator()
     .addItem(getThemeToggleMenuLabel(), 'toggleTheme')
     .addItem('🔄 リセット', 'resetSettings')
@@ -432,42 +433,6 @@ function resetSettings() {
   if (result === ui.Button.YES) {
     PropertiesService.getScriptProperties().deleteAllProperties();
     ui.alert('すべての設定をリセットしました。\n\n• プライマリカラー: #4285F4\n• フォント: Arial\n• フッター/ロゴ: 未設定');
-  }
-}
-
-function removeBoldFromPageElements(pageElements) {
-  pageElements.forEach(pageElement => {
-    const type = pageElement.getPageElementType();
-
-    if (type === SlidesApp.PageElementType.SHAPE && pageElement.asShape().getText) {
-      const textRange = pageElement.asShape().getText();
-      if (textRange) {
-        textRange.getTextStyle().setBold(false);
-      }
-    } else if (type === SlidesApp.PageElementType.TABLE) {
-      const table = pageElement.asTable();
-      for (let i = 0; i < table.getNumRows(); i++) {
-        for (let j = 0; j < table.getNumColumns(); j++) {
-          const cellText = table.getCell(i, j).getText();
-          if (cellText) {
-            cellText.getTextStyle().setBold(false);
-          }
-        }
-      }
-    } else if (type === SlidesApp.PageElementType.GROUP) {
-      removeBoldFromPageElements(pageElement.asGroup().getChildren());
-    }
-  });
-}
-
-function removeBoldFromCurrentSlide() {
-  const presentation = SlidesApp.getActivePresentation();
-  const slide = presentation.getSelection().getCurrentPage();
-
-  if (slide) {
-    removeBoldFromPageElements(slide.getPageElements());
-  } else {
-    SlidesApp.getUi().alert('スライドを選択してください。');
   }
 }
 
