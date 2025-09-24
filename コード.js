@@ -2139,3 +2139,21 @@ const newG = Math.max(0, Math.min(255, Math.round(g * factor)));
 const newB = Math.max(0, Math.min(255, Math.round(b * factor)));
 return '#' + ((1 << 24) + (newR << 16) + (newG << 8) + newB).toString(16).slice(1);
 }
+
+function logInfo(message, meta) {
+  if (meta && typeof meta === 'object') {
+    try {
+      Logger.log(`[Majin] ${message} :: ${JSON.stringify(meta)}`);
+      return;
+    } catch (e) {
+      Logger.log(`[Majin] ${message} :: ${meta}`);
+      return;
+    }
+  }
+  Logger.log(`[Majin] ${message}`);
+}
+
+function logError(message, error) {
+  const payload = error && error.stack ? error.stack : (error && error.message) ? error.message : error;
+  Logger.log(`[Majin][Error] ${message} :: ${payload}`);
+}
