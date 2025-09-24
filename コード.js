@@ -239,17 +239,21 @@ function getThemeToggleMenuLabel() {
 
 function toggleTheme() {
   const props = PropertiesService.getScriptProperties();
-  const current = ensureTheme();
+  const stored = props.getProperty('themeMode');
+  const current = THEMES[stored] ? stored : getActiveTheme();
   const next = current === THEMES.dark.key ? THEMES.light.key : THEMES.dark.key;
+
   props.setProperty('themeMode', next);
-  applyThemeForGeneration(next);
+  applyTheme(next);
+
   try {
     onOpen();
   } catch (e) {
     logError('toggleTheme:onOpenRefreshFailed', e);
   }
+
   SlidesApp.getUi().alert(`${THEMES[next].label}に切り替えました。`);
-  logInfo('toggleTheme:updated', { theme: next });
+  logInfo('toggleTheme:updated', { from: current, to: next });
 }
 
 // --- 3. スライドデータ（サンプル：必ず置換してください） ---
