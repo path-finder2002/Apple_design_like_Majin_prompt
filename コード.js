@@ -212,7 +212,8 @@ let __SECTION_COUNTER = 0; // 章番号カウンタ（ゴースト数字用）
  */
 function generatePresentation() {
   const userSettings = PropertiesService.getScriptProperties().getProperties();
-  applyThemeForGeneration(userSettings.themeMode);
+  const activeTheme = applyThemeForGeneration(userSettings.themeMode);
+  logInfo('generatePresentation:start', { theme: activeTheme, slideDataCount: slideData.length });
   if (userSettings.primaryColor) CONFIG.COLORS.primary_color = userSettings.primaryColor;
   if (userSettings.footerText) CONFIG.FOOTER_TEXT = userSettings.footerText;
   if (userSettings.headerLogoUrl) CONFIG.LOGOS.header = userSettings.headerLogoUrl;
@@ -229,6 +230,7 @@ function generatePresentation() {
     if (SETTINGS.SHOULD_CLEAR_ALL_SLIDES) {
       const slides = presentation.getSlides();
       for (let i = slides.length - 1; i >= 0; i--) slides[i].remove();
+      logInfo('generatePresentation:clearedExistingSlides', { removedSlides: slides.length });
     }
 
     __SECTION_COUNTER = 0;
@@ -236,6 +238,7 @@ function generatePresentation() {
     const layout = createLayoutManager(presentation.getPageWidth(), presentation.getPageHeight());
 
     let pageCounter = 0;
+    let generatedSlides = 0;
     for (const data of slideData) {
       try {
         const generator = slideGenerators[data.type];
@@ -243,6 +246,8 @@ function generatePresentation() {
         if (generator) {
           const slide = presentation.appendSlide(SlidesApp.PredefinedLayout.BLANK);
           generator(slide, data, layout, pageCounter);
+          generatedSlides++;
+          logInfo('generatePresentation:slideGenerated', { index: generatedSlides, type: data.type, title: data.title || null });
 
           if (data.notes) {
             try {
@@ -251,23 +256,26 @@ function generatePresentation() {
                 notesShape.getText().setText(data.notes);
               }
             } catch (e) {
-              Logger.log(`スピーカーノートの設定に失敗しました: ${e.message}`);
+              logError('スピーカーノートの設定に失敗しました', e);
             }
           }
         }
       } catch (e) {
-        Logger.log(`スライドの生成をスキップしました (エラー発生)。 Type: ${data.type}, Title: ${data.title || 'N/A'}, Error: ${e.message}`);
+        logError(`スライドの生成をスキップしました (Type=${data.type}, Title=${data.title || 'N/A'})`, e);
       }
     }
 
+    logInfo('generatePresentation:completed', { generatedSlides });
+
   } catch (e) {
-    Logger.log(`処理が中断されました: ${e.message}\nStack: ${e.stack}`);
+    logError('generatePresentation:aborted', e);
   }
 }
 
 // --- 5. カスタムメニュー設定関数 ---
 function onOpen(e) {
-  ensureTheme();
+  const activeTheme = ensureTheme();
+  logInfo('onOpen:menuRendered', { theme: activeTheme });
   SlidesApp.getUi()
     .createMenu('カスタム設定')
     .addItem('🎨 スライドを生成', 'generatePresentation')
@@ -300,9 +308,11 @@ function setPrimaryColor() {
     if (value === '') {
       props.deleteProperty('primaryColor');
       ui.alert('プライマリカラーをリセットしました。');
+      logInfo('setPrimaryColor:reset');
     } else {
       props.setProperty('primaryColor', value);
       ui.alert('プライマリカラーを保存しました。');
+      logInfo('setPrimaryColor:updated', { value });
     }
   }
 }
@@ -335,13 +345,16 @@ function setFont() {
     if (input === '') {
       props.deleteProperty('fontFamily');
       ui.alert('フォントをリセットしました（Arial）。');
+      logInfo('setFont:reset');
     } else {
       const index = parseInt(input) - 1;
       if (index >= 0 && index < fonts.length) {
         props.setProperty('fontFamily', fonts[index]);
         ui.alert(`フォントを「${fonts[index]}」に設定しました。`);
+        logInfo('setFont:updated', { value: fonts[index] });
       } else {
         ui.alert('無効な番号です。設定をキャンセルしました。');
+        logInfo('setFont:invalidSelection', { input });
       }
     }
   }
@@ -364,9 +377,11 @@ function setFooterText() {
     if (value === '') {
       props.deleteProperty('footerText');
       ui.alert('フッターテキストをリセットしました。');
+      logInfo('setFooterText:reset');
     } else {
       props.setProperty('footerText', value);
       ui.alert('フッターテキストを保存しました。');
+      logInfo('setFooterText:updated', { length: value.length });
     }
   }
 }
@@ -388,9 +403,11 @@ function setHeaderLogo() {
     if (value === '') {
       props.deleteProperty('headerLogoUrl');
       ui.alert('ヘッダーロゴをリセットしました。');
+      logInfo('setHeaderLogo:reset');
     } else {
       props.setProperty('headerLogoUrl', value);
       ui.alert('ヘッダーロゴを保存しました。');
+      logInfo('setHeaderLogo:updated');
     }
   }
 }
@@ -412,9 +429,11 @@ function setClosingLogo() {
     if (value === '') {
       props.deleteProperty('closingLogoUrl');
       ui.alert('クロージングロゴをリセットしました。');
+      logInfo('setClosingLogo:reset');
     } else {
       props.setProperty('closingLogoUrl', value);
       ui.alert('クロージングロゴを保存しました。');
+      logInfo('setClosingLogo:updated');
     }
   }
 }
@@ -426,6 +445,7 @@ function resetSettings() {
   if (result === ui.Button.YES) {
     PropertiesService.getScriptProperties().deleteAllProperties();
     ui.alert('すべての設定をリセットしました。\n\n• プライマリカラー: #4285F4\n• フォント: Arial\n• フッター/ロゴ: 未設定');
+    logInfo('resetSettings:completed');
   }
 }
 
@@ -2047,4 +2067,22 @@ const newR = Math.max(0, Math.min(255, Math.round(r * factor)));
 const newG = Math.max(0, Math.min(255, Math.round(g * factor)));
 const newB = Math.max(0, Math.min(255, Math.round(b * factor)));
 return '#' + ((1 << 24) + (newR << 16) + (newG << 8) + newB).toString(16).slice(1);
+}
+
+function logInfo(message, meta) {
+  if (meta && typeof meta === 'object') {
+    try {
+      Logger.log(`[Majin] ${message} :: ${JSON.stringify(meta)}`);
+      return;
+    } catch (e) {
+      Logger.log(`[Majin] ${message} :: ${meta}`);
+      return;
+    }
+  }
+  Logger.log(`[Majin] ${message}`);
+}
+
+function logError(message, error) {
+  const payload = error && error.stack ? error.stack : (error && error.message) ? error.message : error;
+  Logger.log(`[Majin][Error] ${message} :: ${payload}`);
 }
