@@ -305,6 +305,7 @@ let __SECTION_COUNTER = 0; // 章番号カウンタ（ゴースト数字用）
  * 最大スライド数: 50枚
  */
 function generatePresentation() {
+  ensureTheme();
   const userSettings = PropertiesService.getScriptProperties().getProperties();
   if (userSettings.primaryColor) CONFIG.COLORS.primary_color = userSettings.primaryColor;
   if (userSettings.footerText) CONFIG.FOOTER_TEXT = userSettings.footerText;
@@ -360,16 +361,19 @@ function generatePresentation() {
 
 // --- 5. カスタムメニュー設定関数 ---
 function onOpen(e) {
-  SlidesApp.getUi()
-    .createMenu('カスタム設定')
+  const ui = SlidesApp.getUi();
+  ensureTheme();
+
+  ui.createMenu('カスタム設定')
     .addItem('🎨 スライドを生成', 'generatePresentation')
     .addSeparator()
-    .addSubMenu(SlidesApp.getUi().createMenu('⚙️ 設定')
+    .addSubMenu(ui.createMenu('⚙️ 設定')
       .addItem('プライマリカラー', 'setPrimaryColor')
       .addItem('フォント', 'setFont')
       .addItem('フッターテキスト', 'setFooterText')
       .addItem('ヘッダーロゴ', 'setHeaderLogo')
       .addItem('クロージングロゴ', 'setClosingLogo'))
+    .addItem(getThemeToggleMenuLabel(), 'toggleTheme')
     .addItem('🔄 リセット', 'resetSettings')
     .addToUi();
 }
