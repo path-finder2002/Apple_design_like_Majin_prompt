@@ -136,10 +136,20 @@ processStep: 14, axis: 12, ghostNum: 180
 }
 },
 COLORS: {
-primary_color: '#4285F4', text_primary: '#333333', background_white: '#FFFFFF',
-background_gray: '#f8f9fa', faint_gray: '#e8eaed', lane_title_bg: '#f8f9fa',
-table_header_bg: '#f8f9fa', lane_border: '#dadce0', card_bg: '#ffffff',
-card_border: '#dadce0', neutral_gray: '#9e9e9e', ghost_gray: '#efefed'
+canvas: '#FFFFFF',
+primary_color: '#4285F4',
+text_primary: '#333333',
+background_white: '#FFFFFF',
+background_gray: '#f8f9fa',
+faint_gray: '#e8eaed',
+lane_title_bg: '#f8f9fa',
+table_header_bg: '#f8f9fa',
+lane_border: '#dadce0',
+card_bg: '#ffffff',
+card_border: '#dadce0',
+neutral_gray: '#9e9e9e',
+ghost_gray: '#efefed',
+text_on_primary: '#FFFFFF'
 },
 DIAGRAM: {
 laneGap_px: 24, lanePad_px: 10, laneTitle_h_px: 30, cardGap_px: 12,
@@ -202,6 +212,7 @@ let __SECTION_COUNTER = 0; // 章番号カウンタ（ゴースト数字用）
  */
 function generatePresentation() {
   const userSettings = PropertiesService.getScriptProperties().getProperties();
+  applyThemeForGeneration(userSettings.themeMode);
   if (userSettings.primaryColor) CONFIG.COLORS.primary_color = userSettings.primaryColor;
   if (userSettings.footerText) CONFIG.FOOTER_TEXT = userSettings.footerText;
   if (userSettings.headerLogoUrl) CONFIG.LOGOS.header = userSettings.headerLogoUrl;
@@ -256,9 +267,11 @@ function generatePresentation() {
 
 // --- 5. カスタムメニュー設定関数 ---
 function onOpen(e) {
+  ensureTheme();
   SlidesApp.getUi()
     .createMenu('カスタム設定')
     .addItem('🎨 スライドを生成', 'generatePresentation')
+    .addItem(getThemeToggleMenuLabel(), 'toggleTheme')
     .addSeparator()
     .addSubMenu(SlidesApp.getUi().createMenu('⚙️ 設定')
       .addItem('プライマリカラー', 'setPrimaryColor')
@@ -439,7 +452,7 @@ const slideGenerators = {
 
 // --- 7. スライド生成関数群 ---
 function createTitleSlide(slide, data, layout) {
-  slide.getBackground().setSolidFill(CONFIG.COLORS.background_white);
+  slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
 
   const logoRect = layout.getRect('titleSlide.logo');
   try {
@@ -490,7 +503,7 @@ function createSectionSlide(slide, data, layout, pageNum) {
 
 // content（1/2カラム + 小見出し + 画像）
 function createContentSlide(slide, data, layout, pageNum) {
-  slide.getBackground().setSolidFill(CONFIG.COLORS.background_white);
+  slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'contentSlide', data.title);
   const dy = 0; // アジェンダパターンでは小見出しを使用しない
 
@@ -542,7 +555,7 @@ function createContentSlide(slide, data, layout, pageNum) {
 
 // compare（左右ボックス：ヘッダー色＋白文字）＋インライン装飾対応
 function createCompareSlide(slide, data, layout, pageNum) {
-  slide.getBackground().setSolidFill(CONFIG.COLORS.background_white);
+  slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'compareSlide', data.title);
   const dy = drawSubheadIfAny(slide, layout, 'compareSlide', data.subhead);
 
@@ -563,7 +576,7 @@ function drawCompareBox(slide, rect, title, items) {
   const titleBar = slide.insertShape(SlidesApp.ShapeType.RECTANGLE, rect.left, rect.top, rect.width, th);
   titleBar.getFill().setSolidFill(CONFIG.COLORS.primary_color);
   titleBar.getBorder().setTransparent();
-  setStyledText(titleBar, title, { size: CONFIG.FONTS.sizes.laneTitle, bold: true, color: CONFIG.COLORS.background_white, align: SlidesApp.ParagraphAlignment.CENTER });
+  setStyledText(titleBar, title, { size: CONFIG.FONTS.sizes.laneTitle, bold: true, color: CONFIG.COLORS.text_on_primary, align: SlidesApp.ParagraphAlignment.CENTER });
 
   const pad = 0.75 * 12;
   const textRect = { left: rect.left + pad, top: rect.top + th + pad, width: rect.width - pad * 2, height: rect.height - th - pad * 2 };
@@ -573,7 +586,7 @@ function drawCompareBox(slide, rect, title, items) {
 
 // process（角枠1px＋一桁数字）
 function createProcessSlide(slide, data, layout, pageNum) {
-  slide.getBackground().setSolidFill(CONFIG.COLORS.background_white);
+  slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'processSlide', data.title);
   const dy = drawSubheadIfAny(slide, layout, 'processSlide', data.subhead);
 
@@ -599,7 +612,7 @@ function createProcessSlide(slide, data, layout, pageNum) {
     numBox.getFill().setSolidFill(CONFIG.COLORS.primary_color);
     numBox.getBorder().setTransparent();
     const num = numBox.getText(); num.setText(String(i + 1));
-    applyTextStyle(num, { size: 12, bold: true, color: CONFIG.COLORS.background_white, align: SlidesApp.ParagraphAlignment.CENTER });
+    applyTextStyle(num, { size: 12, bold: true, color: CONFIG.COLORS.text_on_primary, align: SlidesApp.ParagraphAlignment.CENTER });
 
     // 元のプロセステキストから先頭の数字を除去
     let cleanText = String(steps[i] || '');
@@ -615,7 +628,7 @@ function createProcessSlide(slide, data, layout, pageNum) {
 
 // timeline（左右余白広め）
 function createTimelineSlide(slide, data, layout, pageNum) {
-  slide.getBackground().setSolidFill(CONFIG.COLORS.background_white);
+  slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'timelineSlide', data.title);
   const dy = drawSubheadIfAny(slide, layout, 'timelineSlide', data.subhead);
 
@@ -664,7 +677,7 @@ function createTimelineSlide(slide, data, layout, pageNum) {
 
 // diagram（Mermaid風・レーン＋カード＋自動矢印）
 function createDiagramSlide(slide, data, layout, pageNum) {
-  slide.getBackground().setSolidFill(CONFIG.COLORS.background_white);
+  slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'diagramSlide', data.title);
   const dy = drawSubheadIfAny(slide, layout, 'diagramSlide', data.subhead);
 
@@ -739,7 +752,7 @@ function createDiagramSlide(slide, data, layout, pageNum) {
 
 // cards（シンプルカード）
 function createCardsSlide(slide, data, layout, pageNum) {
-  slide.getBackground().setSolidFill(CONFIG.COLORS.background_white);
+  slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'cardsSlide', data.title);
   const dy = drawSubheadIfAny(slide, layout, 'cardsSlide', data.subhead);
 
@@ -791,7 +804,7 @@ function createCardsSlide(slide, data, layout, pageNum) {
 
 // headerCards（ヘッダー付きカード）
 function createHeaderCardsSlide(slide, data, layout, pageNum) {
-  slide.getBackground().setSolidFill(CONFIG.COLORS.background_white);
+  slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'cardsSlide', data.title);
   const dy = drawSubheadIfAny(slide, layout, 'cardsSlide', data.subhead);
 
@@ -824,7 +837,7 @@ function createHeaderCardsSlide(slide, data, layout, pageNum) {
     bodyShape.getBorder().setWeight(1);
     
     const headerTextShape = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, left, top, cardW, headerHeight);
-    setStyledText(headerTextShape, titleText, { size: CONFIG.FONTS.sizes.body, bold: true, color: CONFIG.COLORS.background_white, align: SlidesApp.ParagraphAlignment.CENTER });
+    setStyledText(headerTextShape, titleText, { size: CONFIG.FONTS.sizes.body, bold: true, color: CONFIG.COLORS.text_on_primary, align: SlidesApp.ParagraphAlignment.CENTER });
     try { headerTextShape.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE); } catch(e){}
 
     const bodyTextShape = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, left, top + headerHeight, cardW, cardH - headerHeight);
@@ -837,7 +850,7 @@ function createHeaderCardsSlide(slide, data, layout, pageNum) {
 
 // table（表）
 function createTableSlide(slide, data, layout, pageNum) {
-  slide.getBackground().setSolidFill(CONFIG.COLORS.background_white);
+  slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'tableSlide', data.title);
   const dy = drawSubheadIfAny(slide, layout, 'tableSlide', data.subhead);
 
@@ -880,7 +893,7 @@ function createTableSlide(slide, data, layout, pageNum) {
       const left = area.left + c * (cellW + gap);
       const top  = area.top  + r * (cellH + gap);
       const cell = slide.insertShape(SlidesApp.ShapeType.RECTANGLE, left, top, cellW, cellH);
-      cell.getFill().setSolidFill(isHeader ? CONFIG.COLORS.table_header_bg : CONFIG.COLORS.background_white);
+      cell.getFill().setSolidFill(isHeader ? CONFIG.COLORS.table_header_bg : CONFIG.COLORS.card_bg);
       cell.getBorder().getLineFill().setSolidFill(CONFIG.COLORS.card_border);
       cell.getBorder().setWeight(1);
       setStyledText(cell, String(text || ''), { bold: !!isHeader, align: SlidesApp.ParagraphAlignment.CENTER });
@@ -901,7 +914,7 @@ function createTableSlide(slide, data, layout, pageNum) {
 
 // progress（進捗バー）
 function createProgressSlide(slide, data, layout, pageNum) {
-  slide.getBackground().setSolidFill(CONFIG.COLORS.background_white);
+  slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'progressSlide', data.title);
   const dy = drawSubheadIfAny(slide, layout, 'progressSlide', data.subhead);
 
@@ -945,7 +958,7 @@ function createProgressSlide(slide, data, layout, pageNum) {
 
 // quote（引用）
 function createQuoteSlide(slide, data, layout, pageNum) {
-  slide.getBackground().setSolidFill(CONFIG.COLORS.background_white);
+  slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'quoteSlide', data.title || '引用');
   const dy = drawSubheadIfAny(slide, layout, 'quoteSlide', data.subhead);
 
@@ -968,7 +981,7 @@ function createQuoteSlide(slide, data, layout, pageNum) {
 
 // kpi（KPIカード）
 function createKpiSlide(slide, data, layout, pageNum) {
-  slide.getBackground().setSolidFill(CONFIG.COLORS.background_white);
+  slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'kpiSlide', data.title || '主要指標');
   const dy = drawSubheadIfAny(slide, layout, 'kpiSlide', data.subhead);
 
@@ -1014,7 +1027,7 @@ function createKpiSlide(slide, data, layout, pageNum) {
 
 // closing（結び）
 function createClosingSlide(slide, data, layout) {
-slide.getBackground().setSolidFill(CONFIG.COLORS.background_white);
+slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
 try {
   const image = slide.insertImage(CONFIG.LOGOS.closing);
   const imgW_pt = layout.pxToPt(450) * layout.scaleX;
@@ -1028,7 +1041,7 @@ try {
 
 // bulletCards（箇条書きカード）
 function createBulletCardsSlide(slide, data, layout, pageNum) {
-  slide.getBackground().setSolidFill(CONFIG.COLORS.background_white);
+  slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'contentSlide', data.title);
   const dy = drawSubheadIfAny(slide, layout, 'contentSlide', data.subhead);
 
@@ -1091,7 +1104,7 @@ function createBulletCardsSlide(slide, data, layout, pageNum) {
 
 // hybridContent（箇条書き＋カード統合）
 function createHybridContentSlide(slide, data, layout, pageNum) {
-  slide.getBackground().setSolidFill(CONFIG.COLORS.background_white);
+  slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'hybridContentSlide', data.title);
   const dy = drawSubheadIfAny(slide, layout, 'hybridContentSlide', data.subhead);
 
@@ -1171,7 +1184,7 @@ function createHybridContentSlide(slide, data, layout, pageNum) {
 
 // faq（よくある質問）
 function createFaqSlide(slide, data, layout, pageNum) {
-  slide.getBackground().setSolidFill(CONFIG.COLORS.background_white);
+  slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'contentSlide', data.title || 'よくあるご質問');
   const dy = 0; // FAQパターンでは小見出しを使用しない
 
@@ -1204,7 +1217,7 @@ function createFaqSlide(slide, data, layout, pageNum) {
 
 // compareCards（対比＋カード）
 function createCompareCardsSlide(slide, data, layout, pageNum) {
-  slide.getBackground().setSolidFill(CONFIG.COLORS.background_white);
+  slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'compareCardsSlide', data.title);
   const dy = drawSubheadIfAny(slide, layout, 'compareCardsSlide', data.subhead);
 
@@ -1216,13 +1229,13 @@ function createCompareCardsSlide(slide, data, layout, pageNum) {
   const leftTitleBar = slide.insertShape(SlidesApp.ShapeType.RECTANGLE, leftArea.left, leftArea.top, leftArea.width, leftTitleHeight);
   leftTitleBar.getFill().setSolidFill(CONFIG.COLORS.primary_color);
   leftTitleBar.getBorder().setTransparent();
-  setStyledText(leftTitleBar, data.leftTitle || '選択肢A', { size: CONFIG.FONTS.sizes.laneTitle, bold: true, color: CONFIG.COLORS.background_white, align: SlidesApp.ParagraphAlignment.CENTER });
+  setStyledText(leftTitleBar, data.leftTitle || '選択肢A', { size: CONFIG.FONTS.sizes.laneTitle, bold: true, color: CONFIG.COLORS.text_on_primary, align: SlidesApp.ParagraphAlignment.CENTER });
 
   // 右側のタイトルヘッダー
   const rightTitleBar = slide.insertShape(SlidesApp.ShapeType.RECTANGLE, rightArea.left, rightArea.top, rightArea.width, leftTitleHeight);
   rightTitleBar.getFill().setSolidFill(CONFIG.COLORS.primary_color);
   rightTitleBar.getBorder().setTransparent();
-  setStyledText(rightTitleBar, data.rightTitle || '選択肢B', { size: CONFIG.FONTS.sizes.laneTitle, bold: true, color: CONFIG.COLORS.background_white, align: SlidesApp.ParagraphAlignment.CENTER });
+  setStyledText(rightTitleBar, data.rightTitle || '選択肢B', { size: CONFIG.FONTS.sizes.laneTitle, bold: true, color: CONFIG.COLORS.text_on_primary, align: SlidesApp.ParagraphAlignment.CENTER });
 
   // 左側のカード
   const leftCards = Array.isArray(data.leftCards) ? data.leftCards : [];
@@ -1239,7 +1252,7 @@ function createCompareCardsSlide(slide, data, layout, pageNum) {
 
 // contentProgress（コンテンツ＋進捗）
 function createContentProgressSlide(slide, data, layout, pageNum) {
-  slide.getBackground().setSolidFill(CONFIG.COLORS.background_white);
+  slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'contentProgressSlide', data.title);
   const dy = drawSubheadIfAny(slide, layout, 'contentProgressSlide', data.subhead);
 
@@ -1347,7 +1360,7 @@ function drawCardList(slide, layout, area, cards) {
 
 // timelineCards（タイムライン＋カード）
 function createTimelineCardsSlide(slide, data, layout, pageNum) {
-  slide.getBackground().setSolidFill(CONFIG.COLORS.background_white);
+  slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'timelineCardsSlide', data.title);
   const dy = drawSubheadIfAny(slide, layout, 'timelineCardsSlide', data.subhead);
 
@@ -1447,7 +1460,7 @@ function drawTimelineCardGrid(slide, layout, area, cards) {
 
 // iconCards（アイコン付きカード）
 function createIconCardsSlide(slide, data, layout, pageNum) {
-  slide.getBackground().setSolidFill(CONFIG.COLORS.background_white);
+  slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'iconCardsSlide', data.title);
   const dy = drawSubheadIfAny(slide, layout, 'iconCardsSlide', data.subhead);
 
@@ -1498,7 +1511,7 @@ function createIconCardsSlide(slide, data, layout, pageNum) {
 
 // statsCompare（数値比較）
 function createStatsCompareSlide(slide, data, layout, pageNum) {
-  slide.getBackground().setSolidFill(CONFIG.COLORS.background_white);
+  slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'statsCompareSlide', data.title);
   const dy = drawSubheadIfAny(slide, layout, 'statsCompareSlide', data.subhead);
 
@@ -1510,12 +1523,12 @@ function createStatsCompareSlide(slide, data, layout, pageNum) {
   const leftHeader = slide.insertShape(SlidesApp.ShapeType.RECTANGLE, leftArea.left, leftArea.top, leftArea.width, headerHeight);
   leftHeader.getFill().setSolidFill(CONFIG.COLORS.primary_color);
   leftHeader.getBorder().setTransparent();
-  setStyledText(leftHeader, data.leftTitle || '現在', { size: CONFIG.FONTS.sizes.laneTitle, bold: true, color: CONFIG.COLORS.background_white, align: SlidesApp.ParagraphAlignment.CENTER });
+  setStyledText(leftHeader, data.leftTitle || '現在', { size: CONFIG.FONTS.sizes.laneTitle, bold: true, color: CONFIG.COLORS.text_on_primary, align: SlidesApp.ParagraphAlignment.CENTER });
 
   const rightHeader = slide.insertShape(SlidesApp.ShapeType.RECTANGLE, rightArea.left, rightArea.top, rightArea.width, headerHeight);
   rightHeader.getFill().setSolidFill(CONFIG.COLORS.primary_color);
   rightHeader.getBorder().setTransparent();
-  setStyledText(rightHeader, data.rightTitle || '目標', { size: CONFIG.FONTS.sizes.laneTitle, bold: true, color: CONFIG.COLORS.background_white, align: SlidesApp.ParagraphAlignment.CENTER });
+  setStyledText(rightHeader, data.rightTitle || '目標', { size: CONFIG.FONTS.sizes.laneTitle, bold: true, color: CONFIG.COLORS.text_on_primary, align: SlidesApp.ParagraphAlignment.CENTER });
 
   // 統計データエリア
   const stats = Array.isArray(data.stats) ? data.stats : [];
@@ -1560,7 +1573,7 @@ function createStatsCompareSlide(slide, data, layout, pageNum) {
 
 // roadmapTimeline（詳細ロードマップ）
 function createRoadmapTimelineSlide(slide, data, layout, pageNum) {
-  slide.getBackground().setSolidFill(CONFIG.COLORS.background_white);
+  slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'roadmapTimelineSlide', data.title);
   const dy = drawSubheadIfAny(slide, layout, 'roadmapTimelineSlide', data.subhead);
 
@@ -1635,7 +1648,7 @@ function createRoadmapTimelineSlide(slide, data, layout, pageNum) {
 
 // imageGallery（画像ギャラリー）
 function createImageGallerySlide(slide, data, layout, pageNum) {
-  slide.getBackground().setSolidFill(CONFIG.COLORS.background_white);
+  slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'imageGallerySlide', data.title);
   const dy = drawSubheadIfAny(slide, layout, 'imageGallerySlide', data.subhead);
 
@@ -2013,7 +2026,7 @@ const numBox = slide.insertShape(SlidesApp.ShapeType.RECTANGLE, cx - sz/2, cy - 
 numBox.getFill().setSolidFill(CONFIG.COLORS.primary_color);
 numBox.getBorder().setTransparent();
 const num = numBox.getText(); num.setText(String(i + 1));
-applyTextStyle(num, { size: 12, bold: true, color: CONFIG.COLORS.background_white, align: SlidesApp.ParagraphAlignment.CENTER });
+applyTextStyle(num, { size: 12, bold: true, color: CONFIG.COLORS.text_on_primary, align: SlidesApp.ParagraphAlignment.CENTER });
 
 // 元の箇条書きテキストから先頭の数字を除去
 let cleanText = String(items[i] || '');
