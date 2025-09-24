@@ -218,21 +218,36 @@ function applyTheme(themeKey) {
   return target.key;
 }
 
+/**
+ * スライド生成時に適用するテーマを決定し、適用します。
+ * PropertiesService に保存された設定を優先し、なければデフォルトのライトテーマを適用します。
+ * @param {string | null} themeMode - 'light' または 'dark'。指定されなければプロパティから読み込みます。
+ * @returns {string} 適用されたテーマのキー ('light' または 'dark')。
+ */
 function applyThemeForGeneration(themeMode) {
-  if (themeMode && THEMES[themeMode]) {
-    return applyTheme(themeMode);
-  }
-  return ensureTheme();
+  const themeToApply = themeMode || PropertiesService.getScriptProperties().getProperty('themeMode');
+  return applyTheme(themeToApply);
 }
 
+/**
+ * 現在のテーマ設定を確実に取得し、適用します。
+ * プロパティが存在しない場合はライトテーマをデフォルトとして設定します。
+ */
 function ensureTheme() {
   const props = PropertiesService.getScriptProperties();
   const storedTheme = props.getProperty('themeMode');
   const resolvedTheme = storedTheme && THEMES[storedTheme] ? storedTheme : THEMES.light.key;
-  if (resolvedTheme !== storedTheme) props.setProperty('themeMode', resolvedTheme);
+
+  if (resolvedTheme !== storedTheme) {
+    props.setProperty('themeMode', resolvedTheme);
+  }
   return applyTheme(resolvedTheme);
 }
 
+/**
+ * 現在アクティブなテーマのキーを返します。
+ * @returns {string} 'light' または 'dark'
+ */
 function getActiveTheme() {
   return __ACTIVE_THEME;
 }
@@ -306,14 +321,24 @@ let __SECTION_COUNTER = 0; // 章番号カウンタ（ゴースト数字用）
  * 最大スライド数: 50枚
  */
 function generatePresentation() {
+  // 2.1. グローバル設定オブジェクトの直接変更を避けるため、ディープコピーを作成
+  const localConfig = JSON.parse(JSON.stringify(CONFIG));
+
   const userSettings = PropertiesService.getScriptProperties().getProperties();
-  const activeTheme = applyThemeForGeneration(userSettings.themeMode);
+  
+  // テーマを適用（この関数はグローバルなCONFIGを直接変更するため、ローカルコピーの前に実行）
+  const activeTheme = applyThemeForGeneration(userSettings.themeMode); 
   logInfo('generatePresentation:start', { theme: activeTheme, slideDataCount: slideData.length });
-  if (userSettings.primaryColor) CONFIG.COLORS.primary_color = userSettings.primaryColor;
-  if (userSettings.footerText) CONFIG.FOOTER_TEXT = userSettings.footerText;
-  if (userSettings.headerLogoUrl) CONFIG.LOGOS.header = userSettings.headerLogoUrl;
-  if (userSettings.closingLogoUrl) CONFIG.LOGOS.closing = userSettings.closingLogoUrl;
-  if (userSettings.fontFamily) CONFIG.FONTS.family = userSettings.fontFamily;
+
+  // テーマ適用後の色設定をローカルコピーに反映
+  localConfig.COLORS = JSON.parse(JSON.stringify(CONFIG.COLORS));
+
+  // ユーザー設定をローカルコピーに適用
+  if (userSettings.primaryColor) localConfig.COLORS.primary_color = userSettings.primaryColor;
+  if (userSettings.footerText) localConfig.FOOTER_TEXT = userSettings.footerText;
+  if (userSettings.headerLogoUrl) localConfig.LOGOS.header = userSettings.headerLogoUrl;
+  if (user_settings.closingLogoUrl) localConfig.LOGOS.closing = user_settings.closingLogoUrl;
+  if (userSettings.fontFamily) localConfig.FONTS.family = userSettings.fontFamily;
 
   let presentation;
   try {
@@ -340,7 +365,7 @@ function generatePresentation() {
         if (data.type !== 'title' && data.type !== 'closing') pageCounter++;
         if (generator) {
           const slide = presentation.appendSlide(SlidesApp.PredefinedLayout.BLANK);
-          generator(slide, data, layout, pageCounter);
+          generator(slide, data, layout, pageCounter, localConfig); // 修正：localConfigを渡す
           generatedSlides++;
           logInfo('generatePresentation:slideGenerated', { index: generatedSlides, type: data.type, title: data.title || null });
 
@@ -566,28 +591,28 @@ const slideGenerators = {
 };
 
 // --- 7. スライド生成関数群 ---
-function createTitleSlide(slide, data, layout) {
-  slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
+function createTitleSlide(slide, data, layout, config) {
+  slide.getBackground().setSolidFill(config.COLORS.canvas);
 
   const logoRect = layout.getRect('titleSlide.logo');
   try {
-    const logo = slide.insertImage(CONFIG.LOGOS.header);
+    const logo = slide.insertImage(config.LOGOS.header);
     const aspect = logo.getHeight() / logo.getWidth();
     logo.setLeft(logoRect.left).setTop(logoRect.top).setWidth(logoRect.width).setHeight(logoRect.width * aspect);
   } catch (e) {
-    // 画像挿入に失敗した場合はスキップして他の要素を描画
+    logError('createTitleSlide: failed to insert logo', e);
   }
 
   const titleRect = layout.getRect('titleSlide.title');
   const titleShape = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, titleRect.left, titleRect.top, titleRect.width, titleRect.height);
-  setStyledText(titleShape, data.title, { size: CONFIG.FONTS.sizes.title, bold: true });
+  setStyledText(titleShape, data.title, { size: config.FONTS.sizes.title, bold: true }, config);
 
   const dateRect = layout.getRect('titleSlide.date');
   const dateShape = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, dateRect.left, dateRect.top, dateRect.width, dateRect.height);
   dateShape.getText().setText(data.date || '');
-  applyTextStyle(dateShape.getText(), { size: CONFIG.FONTS.sizes.date });
+  applyTextStyle(dateShape.getText(), { size: config.FONTS.sizes.date }, config);
 
-  drawBottomBar(slide, layout);
+  drawBottomBar(slide, layout, config);
 }
 
 function createSectionSlide(slide, data, layout, pageNum) {
@@ -605,20 +630,20 @@ function createSectionSlide(slide, data, layout, pageNum) {
   const ghostRect = layout.getRect('sectionSlide.ghostNum');
   const ghost = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, ghostRect.left, ghostRect.top, ghostRect.width, ghostRect.height);
   ghost.getText().setText(num);
-  applyTextStyle(ghost.getText(), { size: CONFIG.FONTS.sizes.ghostNum, color: CONFIG.COLORS.ghost_gray, bold: true });
-  try { ghost.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE); } catch(e) {}
+  applyTextStyle(ghost.getText(), { size: CONFIG.FONTS.sizes.ghostNum, color: CONFIG.COLORS.ghost_gray, bold: true }, CONFIG);
+  try { ghost.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE); } catch(e) { logError('createSectionSlide: setContentAlignment failed for ghost', e); }
 
   const titleRect = layout.getRect('sectionSlide.title');
   const titleShape = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, titleRect.left, titleRect.top, titleRect.width, titleRect.height);
   titleShape.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE);
-  setStyledText(titleShape, data.title, { size: CONFIG.FONTS.sizes.sectionTitle, bold: true, align: SlidesApp.ParagraphAlignment.CENTER });
+  setStyledText(titleShape, data.title, { size: CONFIG.FONTS.sizes.sectionTitle, bold: true, align: SlidesApp.ParagraphAlignment.CENTER }, CONFIG);
 
   addCucFooter(slide, layout, pageNum);
 }
 
 // content（1/2カラム + 小見出し + 画像）
-function createContentSlide(slide, data, layout, pageNum) {
-  slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
+function createContentSlide(slide, data, layout, pageNum, config) {
+  slide.getBackground().setSolidFill(config.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'contentSlide', data.title);
   const dy = 0; // アジェンダパターンでは小見出しを使用しない
 
@@ -646,15 +671,15 @@ function createContentSlide(slide, data, layout, pageNum) {
       const rightRect = offsetRect(layout.getRect('contentSlide.twoColRight'), 0, dy);
       const leftShape = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, leftRect.left, leftRect.top, leftRect.width, leftRect.height);
       const rightShape = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, rightRect.left, rightRect.top, rightRect.width, rightRect.height);
-      setBulletsWithInlineStyles(leftShape, L);
-      setBulletsWithInlineStyles(rightShape, R);
+      setBulletsWithInlineStyles(leftShape, L, config);
+      setBulletsWithInlineStyles(rightShape, R, config);
     } else {
       const bodyRect = offsetRect(layout.getRect('contentSlide.body'), 0, dy);
       if (isAgenda) {
-        drawNumberedItems(slide, layout, bodyRect, points);
+        drawNumberedItems(slide, layout, bodyRect, points, config);
       } else {
         const bodyShape = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, bodyRect.left, bodyRect.top, bodyRect.width, bodyRect.height);
-        setBulletsWithInlineStyles(bodyShape, points);
+        setBulletsWithInlineStyles(bodyShape, points, config);
       }
     }
   }
@@ -662,15 +687,15 @@ function createContentSlide(slide, data, layout, pageNum) {
   // 画像（任意）
   if (hasImages) {
     const area = offsetRect(layout.getRect('contentSlide.body'), 0, dy);
-    renderImagesInArea(slide, layout, area, normalizeImages(data.images));
+    renderImagesInArea(slide, layout, area, normalizeImages(data.images), config);
   }
 
-  drawBottomBarAndFooter(slide, layout, pageNum);
+  drawBottomBarAndFooter(slide, layout, pageNum, config);
 }
 
 // compare（左右ボックス：ヘッダー色＋白文字）＋インライン装飾対応
-function createCompareSlide(slide, data, layout, pageNum) {
-  slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
+function createCompareSlide(slide, data, layout, pageNum, config) {
+  slide.getBackground().setSolidFill(config.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'compareSlide', data.title);
   const dy = drawSubheadIfAny(slide, layout, 'compareSlide', data.subhead);
 
@@ -700,8 +725,8 @@ function drawCompareBox(slide, rect, title, items) {
 }
 
 // process（角枠1px＋一桁数字）
-function createProcessSlide(slide, data, layout, pageNum) {
-  slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
+function createProcessSlide(slide, data, layout, pageNum, config) {
+  slide.getBackground().setSolidFill(config.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'processSlide', data.title);
   const dy = drawSubheadIfAny(slide, layout, 'processSlide', data.subhead);
 
@@ -734,15 +759,15 @@ function createProcessSlide(slide, data, layout, pageNum) {
     cleanText = cleanText.replace(/^\s*\d+[\.\s]*/, '');
 
     const txt = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, cx + layout.pxToPt(28), cy - layout.pxToPt(16), area.width - layout.pxToPt(70), layout.pxToPt(32));
-    setStyledText(txt, cleanText, { size: CONFIG.FONTS.sizes.processStep });
-    try { txt.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE); } catch(e){}
+    setStyledText(txt, cleanText, { size: config.FONTS.sizes.processStep }, config);
+    try { txt.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE); } catch(e){ logError('createProcessSlide: setContentAlignment failed', e); }
   }
 
-  drawBottomBarAndFooter(slide, layout, pageNum);
+  drawBottomBarAndFooter(slide, layout, pageNum, config);
 }
 
 // timeline（左右余白広め）
-function createTimelineSlide(slide, data, layout, pageNum) {
+function createTimelineSlide(slide, data, layout, pageNum, config) {
   slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'timelineSlide', data.title);
   const dy = drawSubheadIfAny(slide, layout, 'timelineSlide', data.subhead);
@@ -770,28 +795,28 @@ function createTimelineSlide(slide, data, layout, pageNum) {
     // 時系列順で徐々に濃くなる色計算
     const progress = milestones.length > 1 ? i / (milestones.length - 1) : 0;
     const brightness = 1.5 - (progress * 0.8); // 1.5 → 0.7 の範囲で徐々に濃くなる
-    dot.getFill().setSolidFill(adjustColorBrightness(CONFIG.COLORS.primary_color, brightness));
+    dot.getFill().setSolidFill(adjustColorBrightness(config.COLORS.primary_color, brightness));
     dot.getBorder().setTransparent();
 
     // ラベルテキスト（図形の上部、重ならない位置）
     const labelShape = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, x - layout.pxToPt(50) + dotR/2, baseY - layout.pxToPt(70), layout.pxToPt(100), layout.pxToPt(18));
     labelShape.getFill().setTransparent();
     labelShape.getBorder().setTransparent();
-    setStyledText(labelShape, String(m.label || ''), { size: CONFIG.FONTS.sizes.small, bold: true, align: SlidesApp.ParagraphAlignment.CENTER });
+    setStyledText(labelShape, String(m.label || ''), { size: config.FONTS.sizes.small, bold: true, align: SlidesApp.ParagraphAlignment.CENTER }, config);
 
     // 日付テキスト（図形の下部、より小さいフォント）
     const dateShape = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, x - layout.pxToPt(50) + dotR/2, baseY + layout.pxToPt(15), layout.pxToPt(100), layout.pxToPt(18));
     dateShape.getFill().setTransparent();
     dateShape.getBorder().setTransparent();
-    setStyledText(dateShape, String(m.date || ''), { size: CONFIG.FONTS.sizes.small, color: CONFIG.COLORS.neutral_gray, align: SlidesApp.ParagraphAlignment.CENTER });
+    setStyledText(dateShape, String(m.date || ''), { size: config.FONTS.sizes.small, color: config.COLORS.neutral_gray, align: SlidesApp.ParagraphAlignment.CENTER }, config);
 
   });
 
-  drawBottomBarAndFooter(slide, layout, pageNum);
+  drawBottomBarAndFooter(slide, layout, pageNum, config);
 }
 
 // diagram（Mermaid風・レーン＋カード＋自動矢印）
-function createDiagramSlide(slide, data, layout, pageNum) {
+function createDiagramSlide(slide, data, layout, pageNum, config) {
   slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'diagramSlide', data.title);
   const dy = drawSubheadIfAny(slide, layout, 'diagramSlide', data.subhead);
@@ -845,9 +870,9 @@ function createDiagramSlide(slide, data, layout, pageNum) {
       card.getFill().setSolidFill(CONFIG.COLORS.card_bg);
       card.getBorder().getLineFill().setSolidFill(CONFIG.COLORS.card_border);
       card.getBorder().setWeight(1);
-      setStyledText(card, items[i] || '', { size: CONFIG.FONTS.sizes.body });
+      setStyledText(card, items[i] || '', { size: config.FONTS.sizes.body }, config);
 
-      try { card.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE); } catch(e){}
+      try { card.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE); } catch(e){ logError('createDiagramSlide: setContentAlignment failed', e); }
       cardBoxes[j][i] = { left: cardLeft, top: cardTop, width: cardWidth, height: cardH };
     }
   }
@@ -862,12 +887,12 @@ function createDiagramSlide(slide, data, layout, pageNum) {
     }
   }
 
-  drawBottomBarAndFooter(slide, layout, pageNum);
+  drawBottomBarAndFooter(slide, layout, pageNum, config);
 }
 
 // cards（シンプルカード）
-function createCardsSlide(slide, data, layout, pageNum) {
-  slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
+function createCardsSlide(slide, data, layout, pageNum, config) {
+  slide.getBackground().setSolidFill(config.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'cardsSlide', data.title);
   const dy = drawSubheadIfAny(slide, layout, 'cardsSlide', data.subhead);
 
@@ -891,7 +916,7 @@ function createCardsSlide(slide, data, layout, pageNum) {
 
     const obj = items[idx];
     if (typeof obj === 'string') {
-      setStyledText(card, obj, { size: CONFIG.FONTS.sizes.body });
+      setStyledText(card, obj, { size: config.FONTS.sizes.body }, config);
     } else {
       const title = String(obj.title || '');
       const desc  = String(obj.desc || '');
@@ -899,26 +924,26 @@ function createCardsSlide(slide, data, layout, pageNum) {
       if (title.length > 0 && desc.length > 0) {
         // タイトル + 改行 + 説明文
         const combined = `${title}\n\n${desc}`;
-        setStyledText(card, combined, { size: CONFIG.FONTS.sizes.body });
+        setStyledText(card, combined, { size: config.FONTS.sizes.body }, config);
         try { 
           card.getText().getRange(0, title.length).getTextStyle().setBold(true);
-        } catch(e){}
+        } catch(e){ logError('createCardsSlide: setBold failed', e); }
       } else if (title.length > 0) {
         // タイトルのみ
-        setStyledText(card, title, { size: CONFIG.FONTS.sizes.body, bold: true });
+        setStyledText(card, title, { size: config.FONTS.sizes.body, bold: true }, config);
       } else {
         // 説明文のみ（稀なケース）
-        setStyledText(card, desc, { size: CONFIG.FONTS.sizes.body });
+        setStyledText(card, desc, { size: config.FONTS.sizes.body }, config);
       }
     }
-    try { card.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE); } catch(e) {}
+    try { card.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE); } catch(e) { logError('createCardsSlide: setContentAlignment failed', e); }
   }
 
-  drawBottomBarAndFooter(slide, layout, pageNum);
+  drawBottomBarAndFooter(slide, layout, pageNum, config);
 }
 
 // headerCards（ヘッダー付きカード）
-function createHeaderCardsSlide(slide, data, layout, pageNum) {
+function createHeaderCardsSlide(slide, data, layout, pageNum, config) {
   slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'cardsSlide', data.title);
   const dy = drawSubheadIfAny(slide, layout, 'cardsSlide', data.subhead);
@@ -952,20 +977,20 @@ function createHeaderCardsSlide(slide, data, layout, pageNum) {
     bodyShape.getBorder().setWeight(1);
     
     const headerTextShape = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, left, top, cardW, headerHeight);
-    setStyledText(headerTextShape, titleText, { size: CONFIG.FONTS.sizes.body, bold: true, color: CONFIG.COLORS.text_on_primary, align: SlidesApp.ParagraphAlignment.CENTER });
-    try { headerTextShape.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE); } catch(e){}
+    setStyledText(headerTextShape, titleText, { size: config.FONTS.sizes.body, bold: true, color: config.COLORS.text_on_primary, align: SlidesApp.ParagraphAlignment.CENTER }, config);
+    try { headerTextShape.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE); } catch(e){ logError('createHeaderCardsSlide: setContentAlignment for header failed', e); }
 
     const bodyTextShape = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, left, top + headerHeight, cardW, cardH - headerHeight);
-    setStyledText(bodyTextShape, descText, { size: CONFIG.FONTS.sizes.body, align: SlidesApp.ParagraphAlignment.CENTER });
-    try { bodyTextShape.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE); } catch(e){}
+    setStyledText(bodyTextShape, descText, { size: config.FONTS.sizes.body, align: SlidesApp.ParagraphAlignment.CENTER }, config);
+    try { bodyTextShape.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE); } catch(e){ logError('createHeaderCardsSlide: setContentAlignment for body failed', e); }
   }
 
-  drawBottomBarAndFooter(slide, layout, pageNum);
+  drawBottomBarAndFooter(slide, layout, pageNum, config);
 }
 
 // table（表）
-function createTableSlide(slide, data, layout, pageNum) {
-  slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
+function createTableSlide(slide, data, layout, pageNum, config) {
+  slide.getBackground().setSolidFill(config.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'tableSlide', data.title);
   const dy = drawSubheadIfAny(slide, layout, 'tableSlide', data.subhead);
 
@@ -974,7 +999,7 @@ function createTableSlide(slide, data, layout, pageNum) {
   const rows = Array.isArray(data.rows) ? data.rows : [];
 
   try {
-    if (headers.length > 0) {
+    if (headers.length > 0 && rows.length > 0) {
       const table = slide.insertTable(rows.length + 1, headers.length);
       table.setLeft(area.left).setTop(area.top).setWidth(area.width);
       
@@ -982,7 +1007,7 @@ function createTableSlide(slide, data, layout, pageNum) {
       for (let c = 0; c < headers.length; c++) {
         const cell = table.getCell(0, c);
         cell.getFill().setSolidFill(CONFIG.COLORS.table_header_bg);
-        setStyledText(cell, String(headers[c] || ''), { bold: true, align: SlidesApp.ParagraphAlignment.CENTER });
+        setStyledText(cell, String(headers[c] || ''), { bold: true, align: SlidesApp.ParagraphAlignment.CENTER }, config);
       }
       
       // データ行の設定
@@ -990,15 +1015,22 @@ function createTableSlide(slide, data, layout, pageNum) {
         const row = rows[r] || [];
         for (let c = 0; c < headers.length; c++) {
           const cell = table.getCell(r + 1, c);
-          setStyledText(cell, String(row[c] || ''), { align: SlidesApp.ParagraphAlignment.CENTER });
+          setStyledText(cell, String(row[c] || ''), { align: SlidesApp.ParagraphAlignment.CENTER }, config);
         }
       }
     } else {
-      throw new Error('headers is empty');
+      // 3.1. `createTableSlide` のフォールバックロジック修正
+      if (headers.length === 0) {
+        logError('createTableSlide: headers is empty, skipping table creation.');
+      }
+      if (rows.length === 0) {
+        logError('createTableSlide: rows is empty, skipping table creation.');
+      }
+      throw new Error('headers or rows is empty');
     }
   } catch (e) {
     // フォールバック：矩形シェイプで表を作成
-    const cols = Math.max(1, headers.length || 3);
+    const cols = Math.max(1, headers.length > 0 ? headers.length : (rows.length > 0 && rows[0].length > 0 ? rows[0].length : 3));
     const rcount = rows.length + 1;
     const gap = layout.pxToPt(1);
     const cellW = (area.width - gap * (cols - 1)) / cols;
@@ -1011,24 +1043,24 @@ function createTableSlide(slide, data, layout, pageNum) {
       cell.getFill().setSolidFill(isHeader ? CONFIG.COLORS.table_header_bg : CONFIG.COLORS.card_bg);
       cell.getBorder().getLineFill().setSolidFill(CONFIG.COLORS.card_border);
       cell.getBorder().setWeight(1);
-      setStyledText(cell, String(text || ''), { bold: !!isHeader, align: SlidesApp.ParagraphAlignment.CENTER });
-      try { cell.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE); } catch(e){}
+      setStyledText(cell, String(text || ''), { bold: !!isHeader, align: SlidesApp.ParagraphAlignment.CENTER }, config);
+      try { cell.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE); } catch(e){ logError('createTableSlide fallback: setContentAlignment failed', e); }
     };
     
     // ヘッダー行の描画
-    (headers.length ? headers : ['項目','値1','値2']).forEach((h, c) => drawCell(0, c, h, true));
+    (headers.length > 0 ? headers : Array(cols).fill('項目')).forEach((h, c) => drawCell(0, c, h, true));
     
     // データ行の描画
     for (let r = 0; r < rows.length; r++) {
       const row = rows[r] || [];
-      for (let c = 0; c < (headers.length || 3); c++) drawCell(r + 1, c, row[c], false);
+      for (let c = 0; c < cols; c++) drawCell(r + 1, c, row[c], false);
     }
   }
-  drawBottomBarAndFooter(slide, layout, pageNum);
+  drawBottomBarAndFooter(slide, layout, pageNum, config);
 }
 
 // progress（進捗バー）
-function createProgressSlide(slide, data, layout, pageNum) {
+function createProgressSlide(slide, data, layout, pageNum, config) {
   slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'progressSlide', data.title);
   const dy = drawSubheadIfAny(slide, layout, 'progressSlide', data.subhead);
@@ -1048,8 +1080,8 @@ function createProgressSlide(slide, data, layout, pageNum) {
     const barY = rowCenterY - barHeight / 2;
 
     const label = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, area.left, textY, layout.pxToPt(150), textHeight);
-    setStyledText(label, String(items[i].label || ''), { size: CONFIG.FONTS.sizes.body });
-    try { label.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE); } catch(e){}
+    setStyledText(label, String(items[i].label || ''), { size: config.FONTS.sizes.body }, config);
+    try { label.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE); } catch(e){ logError('createProgressSlide: setContentAlignment for label failed', e); }
 
     const barLeft = area.left + layout.pxToPt(160);
     const barW    = area.width - layout.pxToPt(300);
@@ -1064,15 +1096,15 @@ function createProgressSlide(slide, data, layout, pageNum) {
 
     const pct = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, barLeft + barW + layout.pxToPt(10), textY, layout.pxToPt(80), textHeight);
     pct.getText().setText(String(p) + '%');
-    applyTextStyle(pct.getText(), { size: CONFIG.FONTS.sizes.small, color: CONFIG.COLORS.neutral_gray });
-    try { pct.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE); } catch(e){}
+    applyTextStyle(pct.getText(), { size: config.FONTS.sizes.small, color: config.COLORS.neutral_gray }, config);
+    try { pct.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE); } catch(e){ logError('createProgressSlide: setContentAlignment for percent failed', e); }
   }
 
-  drawBottomBarAndFooter(slide, layout, pageNum);
+  drawBottomBarAndFooter(slide, layout, pageNum, config);
 }
 
 // quote（引用）
-function createQuoteSlide(slide, data, layout, pageNum) {
+function createQuoteSlide(slide, data, layout, pageNum, config) {
   slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'quoteSlide', data.title || '引用');
   const dy = drawSubheadIfAny(slide, layout, 'quoteSlide', data.subhead);
@@ -1084,18 +1116,18 @@ function createQuoteSlide(slide, data, layout, pageNum) {
 
   const textRect = offsetRect(layout.getRect('quoteSlide.quoteText'), 0, dy);
   const textShape = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, textRect.left, textRect.top, textRect.width, textRect.height);
-  setStyledText(textShape, data.text || '', { size: 24, align: SlidesApp.ParagraphAlignment.START });
-  try { textShape.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE); } catch(e){}
+  setStyledText(textShape, data.text || '', { size: 24, align: SlidesApp.ParagraphAlignment.START }, config);
+  try { textShape.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE); } catch(e){ logError('createQuoteSlide: setContentAlignment for text failed', e); }
 
   const authorRect = offsetRect(layout.getRect('quoteSlide.author'), 0, dy);
   const authorShape = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, authorRect.left, authorRect.top, authorRect.width, authorRect.height);
-  setStyledText(authorShape, `— ${data.author || ''}`, { size: 16, color: CONFIG.COLORS.neutral_gray, align: SlidesApp.ParagraphAlignment.END });
+  setStyledText(authorShape, `— ${data.author || ''}`, { size: 16, color: config.COLORS.neutral_gray, align: SlidesApp.ParagraphAlignment.END }, config);
 
-  drawBottomBarAndFooter(slide, layout, pageNum);
+  drawBottomBarAndFooter(slide, layout, pageNum, config);
 }
 
 // kpi（KPIカード）
-function createKpiSlide(slide, data, layout, pageNum) {
+function createKpiSlide(slide, data, layout, pageNum, config) {
   slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'kpiSlide', data.title || '主要指標');
   const dy = drawSubheadIfAny(slide, layout, 'kpiSlide', data.subhead);
@@ -1124,27 +1156,27 @@ function createKpiSlide(slide, data, layout, pageNum) {
     
     // 3つの要素を均等配置
     const labelShape = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, left + pad, top + layout.pxToPt(25), contentWidth, layout.pxToPt(35));
-    setStyledText(labelShape, item.label || 'KPI', { size: 14, color: CONFIG.COLORS.neutral_gray });
+    setStyledText(labelShape, item.label || 'KPI', { size: 14, color: config.COLORS.neutral_gray }, config);
 
     const valueShape = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, left + pad, top + layout.pxToPt(80), contentWidth, layout.pxToPt(80));
-    setStyledText(valueShape, item.value || '0', { size: 32, bold: true, align: SlidesApp.ParagraphAlignment.CENTER });
-    try { valueShape.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE); } catch(e){}
+    setStyledText(valueShape, item.value || '0', { size: 32, bold: true, align: SlidesApp.ParagraphAlignment.CENTER }, config);
+    try { valueShape.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE); } catch(e){ logError('createKpiSlide: setContentAlignment failed', e); }
 
     const changeShape = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, left + pad, top + layout.pxToPt(180), contentWidth, layout.pxToPt(40));
-    let changeColor = CONFIG.COLORS.text_primary;
+    let changeColor = config.COLORS.text_primary;
     if (item.status === 'bad') changeColor = adjustColorBrightness(CONFIG.COLORS.primary_color, 0.7);
     if (item.status === 'good') changeColor = adjustColorBrightness(CONFIG.COLORS.primary_color, 1.3);
-    setStyledText(changeShape, item.change || '', { size: 14, color: changeColor, bold: true, align: SlidesApp.ParagraphAlignment.END });
+    setStyledText(changeShape, item.change || '', { size: 14, color: changeColor, bold: true, align: SlidesApp.ParagraphAlignment.END }, config);
   }
 
-  drawBottomBarAndFooter(slide, layout, pageNum);
+  drawBottomBarAndFooter(slide, layout, pageNum, config);
 }
 
 // closing（結び）
-function createClosingSlide(slide, data, layout) {
-slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
+function createClosingSlide(slide, data, layout, config) {
+slide.getBackground().setSolidFill(config.COLORS.canvas);
 try {
-  const image = slide.insertImage(CONFIG.LOGOS.closing);
+  const image = slide.insertImage(config.LOGOS.closing);
   const imgW_pt = layout.pxToPt(450) * layout.scaleX;
   const aspect = image.getHeight() / image.getWidth();
   image.setWidth(imgW_pt).setHeight(imgW_pt * aspect);
@@ -1155,8 +1187,8 @@ try {
 }
 
 // bulletCards（箇条書きカード）
-function createBulletCardsSlide(slide, data, layout, pageNum) {
-  slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
+function createBulletCardsSlide(slide, data, layout, pageNum, config) {
+  slide.getBackground().setSolidFill(config.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'contentSlide', data.title);
   const dy = drawSubheadIfAny(slide, layout, 'contentSlide', data.subhead);
 
@@ -1164,7 +1196,7 @@ function createBulletCardsSlide(slide, data, layout, pageNum) {
   const items = Array.isArray(data.items) ? data.items : [];
   const totalItems = Math.min(items.length, 3);
   if (totalItems === 0) {
-    drawBottomBarAndFooter(slide, layout, pageNum);
+    drawBottomBarAndFooter(slide, layout, pageNum, config);
     return;
   }
 
@@ -1191,30 +1223,30 @@ function createBulletCardsSlide(slide, data, layout, pageNum) {
       const titleShape = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, area.left + padding, currentY + layout.pxToPt(12), area.width - padding * 2, layout.pxToPt(18));
       titleShape.getFill().setTransparent();
       titleShape.getBorder().setTransparent();
-      setStyledText(titleShape, title, { size: 14, bold: true });
+      setStyledText(titleShape, title, { size: 14, bold: true }, config);
       
       const descShape = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, area.left + padding, currentY + layout.pxToPt(38), area.width - padding * 2, cardHeight - layout.pxToPt(48));
       descShape.getFill().setTransparent();
       descShape.getBorder().setTransparent();
-      setStyledText(descShape, desc, { size: 14, color: CONFIG.COLORS.text_primary });
+      setStyledText(descShape, desc, { size: 14, color: config.COLORS.text_primary }, config);
     } else if (title.length > 0) {
       const titleShape = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, area.left + padding, currentY, area.width - padding * 2, cardHeight);
       titleShape.getFill().setTransparent();
       titleShape.getBorder().setTransparent();
       titleShape.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE);
-      setStyledText(titleShape, title, { size: 14, bold: true });
+      setStyledText(titleShape, title, { size: 14, bold: true }, config);
     } else {
       const descShape = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, area.left + padding, currentY, area.width - padding * 2, cardHeight);
       descShape.getFill().setTransparent();
       descShape.getBorder().setTransparent();
       descShape.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE);
-      setStyledText(descShape, desc, { size: 14, color: CONFIG.COLORS.text_primary });
+      setStyledText(descShape, desc, { size: 14, color: config.COLORS.text_primary }, config);
     }
 
     currentY += cardHeight + gap;
   }
 
-  drawBottomBarAndFooter(slide, layout, pageNum);
+  drawBottomBarAndFooter(slide, layout, pageNum, config);
 }
 
 // hybridContent（箇条書き＋カード統合）
@@ -1298,8 +1330,8 @@ function createHybridContentSlide(slide, data, layout, pageNum) {
 }
 
 // faq（よくある質問）
-function createFaqSlide(slide, data, layout, pageNum) {
-  slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
+function createFaqSlide(slide, data, layout, pageNum, config) {
+  slide.getBackground().setSolidFill(config.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'contentSlide', data.title || 'よくあるご質問');
   const dy = 0; // FAQパターンでは小見出しを使用しない
 
@@ -1322,12 +1354,12 @@ function createFaqSlide(slide, data, layout, pageNum) {
     currentY += qBounds + layout.pxToPt(4);
 
     const aShape = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, area.left + layout.pxToPt(20), currentY, area.width - layout.pxToPt(20), layout.pxToPt(60));
-    setStyledText(aShape, `A. ${item.a || ''}`, { size: 14 });
+    setStyledText(aShape, `A. ${item.a || ''}`, { size: 14 }, config);
     const aBounds = aShape.getHeight();
     currentY += aBounds + layout.pxToPt(15);
   });
 
-  drawBottomBarAndFooter(slide, layout, pageNum);
+  drawBottomBarAndFooter(slide, layout, pageNum, config);
 }
 
 // compareCards（対比＋カード）
@@ -1753,7 +1785,7 @@ function createRoadmapTimelineSlide(slide, data, layout, pageNum) {
       const milestoneText = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, detailArea.left + padding, y + layout.pxToPt(5), detailArea.width - padding * 2, milestoneHeight - layout.pxToPt(6));
       milestoneText.getFill().setTransparent();
       milestoneText.getBorder().setTransparent();
-      setStyledText(milestoneText, `• ${String(milestone || '')}`, { size: 12, color: CONFIG.COLORS.text_primary });
+      setStyledText(milestoneText, `• ${String(milestone || '')}`, { size: 12, color: CONFIG.COLORS.text_primary }, CONFIG);
       try { milestoneText.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE); } catch(e){}
     });
   }
@@ -1762,14 +1794,14 @@ function createRoadmapTimelineSlide(slide, data, layout, pageNum) {
 }
 
 // imageGallery（画像ギャラリー）
-function createImageGallerySlide(slide, data, layout, pageNum) {
-  slide.getBackground().setSolidFill(CONFIG.COLORS.canvas);
+function createImageGallerySlide(slide, data, layout, pageNum, config) {
+  slide.getBackground().setSolidFill(config.COLORS.canvas);
   drawStandardTitleHeader(slide, layout, 'imageGallerySlide', data.title);
   const dy = drawSubheadIfAny(slide, layout, 'imageGallerySlide', data.subhead);
 
   const images = normalizeImages(data.images || []);
   if (images.length === 0) {
-    drawBottomBarAndFooter(slide, layout, pageNum);
+    drawBottomBarAndFooter(slide, layout, pageNum, config);
     return;
   }
 
@@ -1778,7 +1810,7 @@ function createImageGallerySlide(slide, data, layout, pageNum) {
   if (layoutType === 'single') {
     // 単一画像（中央大きく表示）
     const area = offsetRect(layout.getRect('imageGallerySlide.singleImage'), 0, dy);
-    renderSingleImage(slide, layout, area, images[0]);
+    renderSingleImage(slide, layout, area, images[0], config);
   } else if (layoutType === 'showcase') {
     // ショーケース（メイン1枚 + サイド複数）
     const mainArea = offsetRect(layout.getRect('imageGallerySlide.showcaseMain'), 0, dy);
@@ -1790,20 +1822,20 @@ function createImageGallerySlide(slide, data, layout, pageNum) {
     // サイド画像（最大3枚）
     const sideImages = images.slice(1, 4);
     if (sideImages.length > 0) {
-      renderImageGrid(slide, layout, sideArea, sideImages, 1);
+      renderImageGrid(slide, layout, sideArea, sideImages, 1, config);
     }
   } else {
     // グリッド（デフォルト）
     const area = offsetRect(layout.getRect('imageGallerySlide.gridArea'), 0, dy);
     const cols = images.length === 1 ? 1 : (images.length <= 4 ? 2 : 3);
-    renderImageGrid(slide, layout, area, images, cols);
+    renderImageGrid(slide, layout, area, images, cols, config);
   }
 
-  drawBottomBarAndFooter(slide, layout, pageNum);
+  drawBottomBarAndFooter(slide, layout, pageNum, config);
 }
 
 // 単一画像の描画
-function renderSingleImage(slide, layout, area, imageData) {
+function renderSingleImage(slide, layout, area, imageData, config) {
   if (!imageData || !imageData.url) return;
   
   try {
@@ -1834,11 +1866,11 @@ function renderSingleImage(slide, layout, area, imageData) {
         area.width, layout.pxToPt(20));
       captionShape.getFill().setTransparent();
       captionShape.getBorder().setTransparent();
-      setStyledText(captionShape, imageData.caption, { 
-        size: CONFIG.FONTS.sizes.small, 
-        color: CONFIG.COLORS.neutral_gray, 
+      setStyledText(captionShape, imageData.caption, {
+        size: config.FONTS.sizes.small,
+        color: config.COLORS.neutral_gray,
         align: SlidesApp.ParagraphAlignment.CENTER 
-      });
+      }, config);
     }
   } catch(e) {
     // 画像読み込み失敗時のフォールバック
@@ -1850,17 +1882,17 @@ function renderSingleImage(slide, layout, area, imageData) {
     const errorText = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, area.left, area.top, area.width, area.height);
     errorText.getFill().setTransparent();
     errorText.getBorder().setTransparent();
-    setStyledText(errorText, '画像を読み込めませんでした', { 
-      size: CONFIG.FONTS.sizes.body, 
-      color: CONFIG.COLORS.neutral_gray, 
+    setStyledText(errorText, '画像を読み込めませんでした', {
+      size: config.FONTS.sizes.body,
+      color: config.COLORS.neutral_gray,
       align: SlidesApp.ParagraphAlignment.CENTER 
-    });
-    try { errorText.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE); } catch(e){}
+    }, config);
+    try { errorText.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE); } catch(err){ logError('renderSingleImage: setContentAlignment failed', err); }
   }
 }
 
 // グリッド画像の描画
-function renderImageGrid(slide, layout, area, images, cols) {
+function renderImageGrid(slide, layout, area, images, cols, config) {
   if (!images || images.length === 0) return;
   
   const gap = layout.pxToPt(12);
@@ -1875,7 +1907,7 @@ function renderImageGrid(slide, layout, area, images, cols) {
     const top = area.top + r * (cellH + gap);
     
     const cellArea = { left, top, width: cellW, height: cellH };
-    renderSingleImage(slide, layout, cellArea, images[i]);
+    renderSingleImage(slide, layout, cellArea, images[i], config);
   }
 }
 
@@ -1910,80 +1942,80 @@ function offsetRect(rect, dx, dy) {
 return { left: rect.left + (dx || 0), top: rect.top + (dy || 0), width: rect.width, height: rect.height };
 }
 
-function drawStandardTitleHeader(slide, layout, key, title) {
+function drawStandardTitleHeader(slide, layout, key, title, config) {
 const logoRect = layout.getRect(`${key}.headerLogo`);
 try {
-  const logo = slide.insertImage(CONFIG.LOGOS.header);
+  const logo = slide.insertImage(config.LOGOS.header);
   const asp = logo.getHeight() / logo.getWidth();
   logo.setLeft(logoRect.left).setTop(logoRect.top).setWidth(logoRect.width).setHeight(logoRect.width * asp);
 } catch (e) {
-  // 画像挿入に失敗した場合はスキップして他の要素を描画
+  logError('drawStandardTitleHeader: failed to insert logo', e);
 }
 
 const titleRect = layout.getRect(`${key}.title`);
 const titleShape = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, titleRect.left, titleRect.top, titleRect.width, titleRect.height);
-setStyledText(titleShape, title || '', { size: CONFIG.FONTS.sizes.contentTitle, bold: true });
+setStyledText(titleShape, title || '', { size: config.FONTS.sizes.contentTitle, bold: true }, config);
 
 const uRect = layout.getRect(`${key}.titleUnderline`);
 const u = slide.insertShape(SlidesApp.ShapeType.RECTANGLE, uRect.left, uRect.top, uRect.width, uRect.height);
-u.getFill().setSolidFill(CONFIG.COLORS.primary_color);
+u.getFill().setSolidFill(config.COLORS.primary_color);
 u.getBorder().setTransparent();
 }
 
-function drawSubheadIfAny(slide, layout, key, subhead) {
+function drawSubheadIfAny(slide, layout, key, subhead, config) {
 if (!subhead) return 0;
 const rect = layout.getRect(`${key}.subhead`);
 const box = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, rect.left, rect.top, rect.width, rect.height);
-setStyledText(box, subhead, { size: CONFIG.FONTS.sizes.subhead, color: CONFIG.COLORS.text_primary });
+setStyledText(box, subhead, { size: config.FONTS.sizes.subhead, color: config.COLORS.text_primary }, config);
 return layout.pxToPt(36);
 }
 
-function drawBottomBar(slide, layout) {
+function drawBottomBar(slide, layout, config) {
 const barRect = layout.getRect('bottomBar');
 const bar = slide.insertShape(SlidesApp.ShapeType.RECTANGLE, barRect.left, barRect.top, barRect.width, barRect.height);
-bar.getFill().setSolidFill(CONFIG.COLORS.primary_color);
+bar.getFill().setSolidFill(config.COLORS.primary_color);
 bar.getBorder().setTransparent();
 }
 
-function drawBottomBarAndFooter(slide, layout, pageNum) {
-drawBottomBar(slide, layout);
-addCucFooter(slide, layout, pageNum);
+function drawBottomBarAndFooter(slide, layout, pageNum, config) {
+drawBottomBar(slide, layout, config);
+addCucFooter(slide, layout, pageNum, config);
 }
 
-function addCucFooter(slide, layout, pageNum) {
+function addCucFooter(slide, layout, pageNum, config) {
 const leftRect = layout.getRect('footer.leftText');
 const leftShape = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, leftRect.left, leftRect.top, leftRect.width, leftRect.height);
-leftShape.getText().setText(CONFIG.FOOTER_TEXT);
-applyTextStyle(leftShape.getText(), { size: CONFIG.FONTS.sizes.footer, color: CONFIG.COLORS.text_primary });
+leftShape.getText().setText(config.FOOTER_TEXT);
+applyTextStyle(leftShape.getText(), { size: config.FONTS.sizes.footer, color: config.COLORS.text_primary }, config);
 
 if (pageNum > 0) {
 const rightRect = layout.getRect('footer.rightPage');
 const rightShape = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, rightRect.left, rightRect.top, rightRect.width, rightRect.height);
 rightShape.getText().setText(String(pageNum));
-applyTextStyle(rightShape.getText(), { size: CONFIG.FONTS.sizes.footer, color: CONFIG.COLORS.primary_color, align: SlidesApp.ParagraphAlignment.END });
+applyTextStyle(rightShape.getText(), { size: config.FONTS.sizes.footer, color: config.COLORS.primary_color, align: SlidesApp.ParagraphAlignment.END }, config);
 }
 }
 
-function applyTextStyle(textRange, opt) {
+function applyTextStyle(textRange, opt, config) {
 const style = textRange.getTextStyle();
-style.setFontFamily(CONFIG.FONTS.family);
-style.setForegroundColor(opt.color || CONFIG.COLORS.text_primary);
-style.setFontSize(opt.size || CONFIG.FONTS.sizes.body);
+style.setFontFamily(config.FONTS.family);
+style.setForegroundColor(opt.color || config.COLORS.text_primary);
+style.setFontSize(opt.size || config.FONTS.sizes.body);
 style.setBold(opt.bold || false);
 if (opt.align) {
 try { textRange.getParagraphs().forEach(p => p.getRange().getParagraphStyle().setParagraphAlignment(opt.align)); } catch (e) {}
 }
 }
 
-function setStyledText(shapeOrCell, rawText, baseOpt) {
-const parsed = parseInlineStyles(rawText || '');
+function setStyledText(shapeOrCell, rawText, baseOpt, config) {
+const parsed = parseInlineStyles(rawText || '', config);
 const tr = shapeOrCell.getText();
 tr.setText(parsed.output);
-applyTextStyle(tr, baseOpt || {});
-applyStyleRanges(tr, parsed.ranges);
+applyTextStyle(tr, baseOpt || {}, config);
+applyStyleRanges(tr, parsed.ranges, config);
 }
 
-function setBulletsWithInlineStyles(shape, points) {
+function setBulletsWithInlineStyles(shape, points, config) {
 const joiner = '\n\n';
 let combined = '';
 const ranges = [];
@@ -2002,7 +2034,7 @@ parsed.ranges.forEach(r => {
 
 const tr = shape.getText();
 tr.setText(combined || '• —');
-applyTextStyle(tr, { size: CONFIG.FONTS.sizes.body });
+applyTextStyle(tr, { size: config.FONTS.sizes.body }, config);
 
 try {
 tr.getParagraphs().forEach(p => {
@@ -2012,10 +2044,10 @@ ps.setSpaceBelow(6);
 });
 } catch (e) {}
 
-applyStyleRanges(tr, ranges);
+applyStyleRanges(tr, ranges, config);
 }
 
-function parseInlineStyles(s) {
+function parseInlineStyles(s, config) {
 const ranges = [];
 let out = '';
 for (let i = 0; i < s.length; ) {
@@ -2026,7 +2058,7 @@ const content = s.substring(i + 2, close);
 const start = out.length;
 out += content;
 const end = out.length;
-ranges.push({ start, end, bold: true, color: CONFIG.COLORS.primary_color });
+ranges.push({ start, end, bold: true, color: config.COLORS.primary_color });
 i = close + 2; continue;
 }
 }
@@ -2046,14 +2078,14 @@ out += s[i]; i++;
 return { output: out, ranges };
 }
 
-function applyStyleRanges(textRange, ranges) {
+function applyStyleRanges(textRange, ranges, config) {
 ranges.forEach(r => {
 try {
 const sub = textRange.getRange(r.start, r.end);
 if (!sub) return;
 const st = sub.getTextStyle();
 if (r.bold) st.setBold(true);
-if (r.color) st.setForegroundColor(r.color);
+if (r.color) st.setForegroundColor(r.color || config.COLORS.primary_color);
 } catch (e) {}
 });
 }
@@ -2066,7 +2098,7 @@ return null;
 }).filter(Boolean).slice(0, 6);
 }
 
-function renderImagesInArea(slide, layout, area, images) {
+function renderImagesInArea(slide, layout, area, images, config) {
 if (!images || images.length === 0) return;
 const n = Math.min(6, images.length);
 let cols = 1, rows = 1;
@@ -2090,7 +2122,7 @@ const w = img.getWidth() * scale;
 const h = img.getHeight() * scale;
 img.setWidth(w).setHeight(h);
 img.setLeft(left + (cellW - w) / 2).setTop(top + (cellH - h) / 2);
-} catch(e) {}
+} catch(e) { logError('renderImagesInArea: failed to insert image', e); }
 }
 }
 
@@ -2125,7 +2157,7 @@ arr.getFill().setSolidFill(CONFIG.COLORS.primary_color);
 arr.getBorder().setTransparent();
 }
 
-function drawNumberedItems(slide, layout, area, items) {
+function drawNumberedItems(slide, layout, area, items, config) {
 const n = Math.max(1, items.length);
 const topPadding = layout.pxToPt(30);
 const bottomPadding = layout.pxToPt(10);
@@ -2148,8 +2180,8 @@ let cleanText = String(items[i] || '');
 cleanText = cleanText.replace(/^\s*\d+[\.\s]*/, '');
 
 const txt = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, cx + layout.pxToPt(28), cy - layout.pxToPt(16), area.width - layout.pxToPt(70), layout.pxToPt(32));
-setStyledText(txt, cleanText, { size: CONFIG.FONTS.sizes.processStep });
-try { txt.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE); } catch(e){}
+setStyledText(txt, cleanText, { size: config.FONTS.sizes.processStep }, config);
+try { txt.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE); } catch(e){ logError('drawNumberedItems: setContentAlignment failed', e); }
 }
 }
 
