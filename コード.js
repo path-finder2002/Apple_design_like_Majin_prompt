@@ -337,7 +337,7 @@ function generatePresentation() {
   if (userSettings.primaryColor) localConfig.COLORS.primary_color = userSettings.primaryColor;
   if (userSettings.footerText) localConfig.FOOTER_TEXT = userSettings.footerText;
   if (userSettings.headerLogoUrl) localConfig.LOGOS.header = userSettings.headerLogoUrl;
-  if (user_settings.closingLogoUrl) localConfig.LOGOS.closing = user_settings.closingLogoUrl;
+  if (userSettings.closingLogoUrl) localConfig.LOGOS.closing = userSettings.closingLogoUrl;
   if (userSettings.fontFamily) localConfig.FONTS.family = userSettings.fontFamily;
 
   let presentation;
