@@ -260,10 +260,20 @@ processStep: 14, axis: 12, ghostNum: 180
 }
 },
 COLORS: {
-primary_color: '#4285F4', text_primary: '#333333', background_white: '#FFFFFF',
-background_gray: '#f8f9fa', faint_gray: '#e8eaed', lane_title_bg: '#f8f9fa',
-table_header_bg: '#f8f9fa', lane_border: '#dadce0', card_bg: '#ffffff',
-card_border: '#dadce0', neutral_gray: '#9e9e9e', ghost_gray: '#efefed'
+canvas: '#FFFFFF',
+primary_color: '#4285F4',
+text_primary: '#000000',
+background_white: '#FFFFFF',
+background_gray: '#f8f9fa',
+faint_gray: '#e8eaed',
+lane_title_bg: '#f8f9fa',
+table_header_bg: '#f8f9fa',
+lane_border: '#dadce0',
+card_bg: '#ffffff',
+card_border: '#dadce0',
+neutral_gray: '#9e9e9e',
+ghost_gray: '#efefed',
+text_on_primary: '#FFFFFF'
 },
 DIAGRAM: {
 laneGap_px: 24, lanePad_px: 10, laneTitle_h_px: 30, cardGap_px: 12,
@@ -277,6 +287,94 @@ closing: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_
 
 FOOTER_TEXT: `© ${new Date().getFullYear()} Google Inc.`
 };
+
+const THEMES = {
+light: {
+  key: 'light',
+  label: 'ライトテーマ',
+  colors: {
+    canvas: '#FFFFFF',
+    primary_color: '#4285F4',
+    text_primary: '#000000',
+    background_white: '#FFFFFF',
+    background_gray: '#f8f9fa',
+    faint_gray: '#e8eaed',
+    lane_title_bg: '#f8f9fa',
+    table_header_bg: '#f8f9fa',
+    lane_border: '#dadce0',
+    card_bg: '#ffffff',
+    card_border: '#dadce0',
+    neutral_gray: '#9e9e9e',
+    ghost_gray: '#efefed',
+    text_on_primary: '#FFFFFF'
+  }
+},
+dark: {
+  key: 'dark',
+  label: 'ダークテーマ',
+  colors: {
+    canvas: '#202124',
+    primary_color: '#8AB4F8',
+    text_primary: '#FFFFFF',
+    background_white: '#1f1f1f',
+    background_gray: '#2b2c2f',
+    faint_gray: '#3c4043',
+    lane_title_bg: '#2b2c2f',
+    table_header_bg: '#2b2c2f',
+    lane_border: '#44464a',
+    card_bg: '#1f1f1f',
+    card_border: '#3c4043',
+    neutral_gray: '#b0b0b0',
+    ghost_gray: '#2f3032',
+    text_on_primary: '#202124'
+  }
+}
+};
+
+let __ACTIVE_THEME = THEMES.light.key;
+
+function applyTheme(themeKey) {
+  const target = THEMES[themeKey] || THEMES.light;
+  Object.keys(target.colors).forEach(key => {
+    CONFIG.COLORS[key] = target.colors[key];
+  });
+  __ACTIVE_THEME = target.key;
+  return target.key;
+}
+
+function applyThemeForGeneration(themeMode) {
+  const requested = themeMode && THEMES[themeMode] ? themeMode : THEMES.light.key;
+  return applyTheme(requested);
+}
+
+function ensureTheme() {
+  const props = PropertiesService.getScriptProperties();
+  const storedTheme = props.getProperty('themeMode');
+  return applyThemeForGeneration(storedTheme);
+}
+
+function getActiveTheme() {
+  return __ACTIVE_THEME;
+}
+
+function getThemeToggleMenuLabel() {
+  return getActiveTheme() === THEMES.dark.key ? '☀️ ライトテーマに切替' : '🌙 ダークテーマに切替';
+}
+
+function toggleTheme() {
+  const props = PropertiesService.getScriptProperties();
+  const current = ensureTheme();
+  const next = current === THEMES.dark.key ? THEMES.light.key : THEMES.dark.key;
+  props.setProperty('themeMode', next);
+  applyThemeForGeneration(next);
+  try {
+    onOpen();
+  } catch (e) {
+    logError('toggleTheme:onOpenRefreshFailed', e);
+  }
+  SlidesApp.getUi().alert(`${THEMES[next].label}に切り替えました。`);
+  logInfo('toggleTheme:updated', { theme: next });
+}
 
 // --- 3. スライドデータ（サンプル：必ず置換してください） ---
 const slideData = [
@@ -687,7 +785,7 @@ function drawCompareBox(slide, rect, title, items) {
   const titleBar = slide.insertShape(SlidesApp.ShapeType.RECTANGLE, rect.left, rect.top, rect.width, th);
   titleBar.getFill().setSolidFill(CONFIG.COLORS.primary_color);
   titleBar.getBorder().setTransparent();
-  setStyledText(titleBar, title, { size: CONFIG.FONTS.sizes.laneTitle, bold: true, color: CONFIG.COLORS.background_white, align: SlidesApp.ParagraphAlignment.CENTER });
+  setStyledText(titleBar, title, { size: CONFIG.FONTS.sizes.laneTitle, bold: true, color: CONFIG.COLORS.text_on_primary, align: SlidesApp.ParagraphAlignment.CENTER });
 
   const pad = 0.75 * 12;
   const textRect = { left: rect.left + pad, top: rect.top + th + pad, width: rect.width - pad * 2, height: rect.height - th - pad * 2 };
@@ -723,7 +821,7 @@ function createProcessSlide(slide, data, layout, pageNum) {
     numBox.getFill().setSolidFill(CONFIG.COLORS.primary_color);
     numBox.getBorder().setTransparent();
     const num = numBox.getText(); num.setText(String(i + 1));
-    applyTextStyle(num, { size: 12, bold: true, color: CONFIG.COLORS.background_white, align: SlidesApp.ParagraphAlignment.CENTER });
+    applyTextStyle(num, { size: 12, bold: true, color: CONFIG.COLORS.text_on_primary, align: SlidesApp.ParagraphAlignment.CENTER });
 
     // 元のプロセステキストから先頭の数字を除去
     let cleanText = String(steps[i] || '');
@@ -948,7 +1046,7 @@ function createHeaderCardsSlide(slide, data, layout, pageNum) {
     bodyShape.getBorder().setWeight(1);
     
     const headerTextShape = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, left, top, cardW, headerHeight);
-    setStyledText(headerTextShape, titleText, { size: CONFIG.FONTS.sizes.body, bold: true, color: CONFIG.COLORS.background_white, align: SlidesApp.ParagraphAlignment.CENTER });
+    setStyledText(headerTextShape, titleText, { size: CONFIG.FONTS.sizes.body, bold: true, color: CONFIG.COLORS.text_on_primary, align: SlidesApp.ParagraphAlignment.CENTER });
     try { headerTextShape.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE); } catch(e){}
 
     const bodyTextShape = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, left, top + headerHeight, cardW, cardH - headerHeight);
@@ -1340,13 +1438,13 @@ function createCompareCardsSlide(slide, data, layout, pageNum) {
   const leftTitleBar = slide.insertShape(SlidesApp.ShapeType.RECTANGLE, leftArea.left, leftArea.top, leftArea.width, leftTitleHeight);
   leftTitleBar.getFill().setSolidFill(CONFIG.COLORS.primary_color);
   leftTitleBar.getBorder().setTransparent();
-  setStyledText(leftTitleBar, data.leftTitle || '選択肢A', { size: CONFIG.FONTS.sizes.laneTitle, bold: true, color: CONFIG.COLORS.background_white, align: SlidesApp.ParagraphAlignment.CENTER });
+  setStyledText(leftTitleBar, data.leftTitle || '選択肢A', { size: CONFIG.FONTS.sizes.laneTitle, bold: true, color: CONFIG.COLORS.text_on_primary, align: SlidesApp.ParagraphAlignment.CENTER });
 
   // 右側のタイトルヘッダー
   const rightTitleBar = slide.insertShape(SlidesApp.ShapeType.RECTANGLE, rightArea.left, rightArea.top, rightArea.width, leftTitleHeight);
   rightTitleBar.getFill().setSolidFill(CONFIG.COLORS.primary_color);
   rightTitleBar.getBorder().setTransparent();
-  setStyledText(rightTitleBar, data.rightTitle || '選択肢B', { size: CONFIG.FONTS.sizes.laneTitle, bold: true, color: CONFIG.COLORS.background_white, align: SlidesApp.ParagraphAlignment.CENTER });
+  setStyledText(rightTitleBar, data.rightTitle || '選択肢B', { size: CONFIG.FONTS.sizes.laneTitle, bold: true, color: CONFIG.COLORS.text_on_primary, align: SlidesApp.ParagraphAlignment.CENTER });
 
   // 左側のカード
   const leftCards = Array.isArray(data.leftCards) ? data.leftCards : [];
@@ -1634,12 +1732,12 @@ function createStatsCompareSlide(slide, data, layout, pageNum) {
   const leftHeader = slide.insertShape(SlidesApp.ShapeType.RECTANGLE, leftArea.left, leftArea.top, leftArea.width, headerHeight);
   leftHeader.getFill().setSolidFill(CONFIG.COLORS.primary_color);
   leftHeader.getBorder().setTransparent();
-  setStyledText(leftHeader, data.leftTitle || '現在', { size: CONFIG.FONTS.sizes.laneTitle, bold: true, color: CONFIG.COLORS.background_white, align: SlidesApp.ParagraphAlignment.CENTER });
+  setStyledText(leftHeader, data.leftTitle || '現在', { size: CONFIG.FONTS.sizes.laneTitle, bold: true, color: CONFIG.COLORS.text_on_primary, align: SlidesApp.ParagraphAlignment.CENTER });
 
   const rightHeader = slide.insertShape(SlidesApp.ShapeType.RECTANGLE, rightArea.left, rightArea.top, rightArea.width, headerHeight);
   rightHeader.getFill().setSolidFill(CONFIG.COLORS.primary_color);
   rightHeader.getBorder().setTransparent();
-  setStyledText(rightHeader, data.rightTitle || '目標', { size: CONFIG.FONTS.sizes.laneTitle, bold: true, color: CONFIG.COLORS.background_white, align: SlidesApp.ParagraphAlignment.CENTER });
+  setStyledText(rightHeader, data.rightTitle || '目標', { size: CONFIG.FONTS.sizes.laneTitle, bold: true, color: CONFIG.COLORS.text_on_primary, align: SlidesApp.ParagraphAlignment.CENTER });
 
   // 統計データエリア
   const stats = Array.isArray(data.stats) ? data.stats : [];
@@ -2137,7 +2235,7 @@ const numBox = slide.insertShape(SlidesApp.ShapeType.RECTANGLE, cx - sz/2, cy - 
 numBox.getFill().setSolidFill(CONFIG.COLORS.primary_color);
 numBox.getBorder().setTransparent();
 const num = numBox.getText(); num.setText(String(i + 1));
-applyTextStyle(num, { size: 12, bold: true, color: CONFIG.COLORS.background_white, align: SlidesApp.ParagraphAlignment.CENTER });
+applyTextStyle(num, { size: 12, bold: true, color: CONFIG.COLORS.text_on_primary, align: SlidesApp.ParagraphAlignment.CENTER });
 
 // 元の箇条書きテキストから先頭の数字を除去
 let cleanText = String(items[i] || '');
