@@ -56,7 +56,8 @@ function setFont() {
     'Arial',
     'Noto Sans JP',
     'M PLUS 1p',
-    'Noto Serif JP'
+    'Noto Serif JP',
+    'Inter'
   ];
   
   const fontList = fonts.map((font, index) => 
