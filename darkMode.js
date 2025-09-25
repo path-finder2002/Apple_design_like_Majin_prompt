@@ -42,6 +42,57 @@ const THEMES = {
   }
 };
 
+function mapThemeColorTypeToKey(themeColorType, theme) {
+  if (!theme || !theme.colors) return null;
+
+  switch (themeColorType) {
+    case SlidesApp.ThemeColorType.DARK1:
+    case SlidesApp.ThemeColorType.TEXT1:
+      return theme.colors.text_primary ? 'text_primary' : null;
+    case SlidesApp.ThemeColorType.LIGHT1:
+    case SlidesApp.ThemeColorType.BACKGROUND1:
+      return theme.colors.background_white ? 'background_white' : null;
+    case SlidesApp.ThemeColorType.TEXT2:
+    case SlidesApp.ThemeColorType.DARK2:
+      return theme.colors.neutral_gray ? 'neutral_gray' : null;
+    case SlidesApp.ThemeColorType.ACCENT1:
+      return theme.colors.primary_color ? 'primary_color' : null;
+    case SlidesApp.ThemeColorType.ACCENT2:
+      return theme.colors.text_on_primary ? 'text_on_primary' : null;
+    default:
+      return null;
+  }
+}
+
+function resolveColorKeyFromStyle(color, fromTheme, fromColorIndex) {
+  if (!color) return { hex: null, colorKey: null };
+
+  try {
+    const colorType = color.getColorType();
+
+    if (colorType === SlidesApp.ColorType.RGB) {
+      const rgb = color.asRgbColor();
+      if (!rgb) return { hex: null, colorKey: null };
+      const hex = normalizeHex(rgb.asHexString());
+      return { hex, colorKey: fromColorIndex[hex] || null };
+    }
+
+    if (colorType === SlidesApp.ColorType.THEME) {
+      const themeColor = color.asThemeColor();
+      if (!themeColor) return { hex: null, colorKey: null };
+      const themeType = themeColor.getThemeColorType();
+      const colorKey = mapThemeColorTypeToKey(themeType, fromTheme);
+      if (!colorKey) return { hex: null, colorKey: null };
+      const hex = fromTheme.colors[colorKey] ? normalizeHex(fromTheme.colors[colorKey]) : null;
+      return { hex, colorKey };
+    }
+  } catch (e) {
+    logError('resolveColorKeyFromStyle', e);
+  }
+
+  return { hex: null, colorKey: null };
+}
+
 let __ACTIVE_THEME = THEMES.light.key;
 
 function applyTheme(themeKey) {
@@ -255,15 +306,15 @@ function applyThemeToSingleTextRange(range, fromTheme, toTheme, fromColorIndex) 
   try {
     if (!style.isForegroundColorSet()) return;
     const color = style.getForegroundColor();
-    if (!color) return;
-    const rgb = color.asRgbColor();
-    if (!rgb) return;
-    const hex = normalizeHex(rgb.asHexString());
-    const colorKey = fromColorIndex[hex];
-    if (colorKey && toTheme.colors[colorKey]) {
-      style.setForegroundColor(toTheme.colors[colorKey]);
+    const { hex, colorKey } = resolveColorKeyFromStyle(color, fromTheme, fromColorIndex);
+    const resolvedKey = colorKey || (hex ? fromColorIndex[hex] : null);
+
+    if (resolvedKey && toTheme.colors[resolvedKey]) {
+      style.setForegroundColor(toTheme.colors[resolvedKey]);
       return;
     }
+
+    if (!hex) return;
 
     const derivedColor = transformDerivedColor(hex, fromTheme, toTheme);
     if (derivedColor) {
