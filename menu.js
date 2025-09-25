@@ -163,3 +163,6 @@ function resetSettings() {
   
   if (result === ui.Button.YES) {
     PropertiesService.getScriptProperties().deleteAllProperties();
+    ui.alert('すべての設定をリセットしました。\n\n• プライマリカラー: #4285F4\n• フォント: Arial\n• フッター/ロゴ: 未設定');
+  }
+}
