@@ -134,6 +134,66 @@ function drawCompareBox(slide, rect, title, items) {
   setBulletsWithInlineStyles(body, items);
 }
 
+function createBigFactSlide(slide, data, layout) {
+  slide.getBackground().setSolidFill(CONFIG.COLORS.background_white);
+
+  const mainRect = layout.getRect('bigFactSlide.mainValue');
+  const mainShape = slide.insertShape(
+    SlidesApp.ShapeType.TEXT_BOX,
+    mainRect.left,
+    mainRect.top,
+    mainRect.width,
+    mainRect.height
+  );
+
+  const mainText = data.value || data.fact || data.title || '2x';
+  const mainRange = mainShape.getText();
+  mainRange.setText(mainText);
+  applyTextStyle(mainRange, {
+    size: CONFIG.FONTS.sizes.bigFactMain,
+    bold: true,
+    align: SlidesApp.ParagraphAlignment.CENTER,
+    color: CONFIG.COLORS.text_primary
+  });
+  try {
+    mainRange.getTextStyle().setFontFamily('Inter');
+  } catch (e) {
+    // フォント未対応環境では既定フォントを使用
+  }
+  try { mainShape.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE); } catch (e) {}
+
+  const captionRect = layout.getRect('bigFactSlide.caption');
+  const gapPt = layout.pxToPt(100);
+  const captionTop = Math.min(
+    mainRect.top + mainRect.height + gapPt,
+    layout.pageH_pt - captionRect.height - layout.pxToPt(40)
+  );
+  const captionShape = slide.insertShape(
+    SlidesApp.ShapeType.TEXT_BOX,
+    captionRect.left,
+    captionTop,
+    captionRect.width,
+    captionRect.height
+  );
+
+  const captionText = data.caption || data.label || data.subhead || 'Encoding Faster';
+  const captionRange = captionShape.getText();
+  captionRange.setText(captionText);
+  applyTextStyle(captionRange, {
+    size: CONFIG.FONTS.sizes.bigFactCaption,
+    color: CONFIG.COLORS.bigFact_caption,
+    align: SlidesApp.ParagraphAlignment.CENTER
+  });
+  try {
+    const st = captionRange.getTextStyle();
+    st.setFontFamily('Inter');
+    st.setBold(false);
+  } catch (e) {
+    // フォント未対応環境では既定フォントを使用
+  }
+  try { captionShape.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE); } catch (e) {}
+}
+
 // process（角枠1px＋一桁数字）
 function createProcessSlide(slide, data, layout, pageNum) {
   slide.getBackground().setSolidFill(CONFIG.COLORS.background_white);
@@ -568,4 +628,5 @@ Object.assign(slideGenerators, {
   kpi: createKpiSlide,
   closing: createClosingSlide,
   statsCompare: createStatsCompareSlide,
+  bigFact: createBigFactSlide,
 });

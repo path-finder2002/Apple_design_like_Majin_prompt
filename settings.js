@@ -29,7 +29,8 @@ const LIGHT_THEME_COLORS = {
   card_border: '#DADCE0',
   neutral_gray: '#9E9E9E',
   ghost_gray: '#EFEFED',
-  text_on_primary: '#FFFFFF'
+  text_on_primary: '#FFFFFF',
+  bigFact_caption: '#6E6E73'
 };
 
 const DARK_THEME_COLORS = {
@@ -46,7 +47,8 @@ const DARK_THEME_COLORS = {
   card_border: '#3A3A3C',
   neutral_gray: '#8E8E93',
   ghost_gray: '#636366',
-  text_on_primary: '#FFFFFF'
+  text_on_primary: '#FFFFFF',
+  bigFact_caption: '#D1D1D6'
 };
 
 const CONFIG = {
@@ -70,6 +72,10 @@ contentSlide: {
   twoColLeft:     { left: 25,  top: 172, width: 440, height: 290 },  
   twoColRight:    { left: 495, top: 172, width: 440, height: 290 }  
 },  
+bigFactSlide: {
+  mainValue: { left: 0, top: 120, width: 960, height: 200 },
+  caption:   { left: 0, top: 360, width: 960, height: 80 }
+},
 compareSlide: {  
   headerLogo:     { right: 20, top: 20, width: 75 },  
   title:          { left: 25, top: 50,  width: 830, height: 65 },  
@@ -167,7 +173,8 @@ family: 'Arial', // デフォルト、プロパティから動的に変更可能
 sizes: {
 title: 40, date: 16, sectionTitle: 38, contentTitle: 28, subhead: 18,
 body: 14, footer: 9, chip: 11, laneTitle: 13, small: 10,
-processStep: 14, axis: 12, ghostNum: 180
+processStep: 14, axis: 12, ghostNum: 180,
+bigFactMain: 180, bigFactCaption: 36
 }
 },
 COLORS: Object.assign({}, LIGHT_THEME_COLORS),

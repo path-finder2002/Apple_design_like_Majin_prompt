@@ -2,6 +2,12 @@
 const slideData = [
   { type: 'title', title: 'Google Workspace 新機能提案', date: '2025.08.24', notes: '本日は、AIを活用した新しいコラボレーション機能についてご提案します。' },
   {
+    type: 'bigFact',
+    value: '2x',
+    caption: 'Encoding Faster',
+    notes: 'エンコード処理が現行比で2倍高速化したことを強調します。'
+  },
+  {
     type: 'bulletCards',
     title: '提案する3つの新機能',
     subhead: 'チームの生産性をさらに向上させるためのコンセプト',
@@ -34,5 +40,4 @@ const slideData = [
   },
   { type: 'closing', notes: '本日のご提案は以上です。ご清聴いただき、ありがとうございました。' }
 ];
-
 
