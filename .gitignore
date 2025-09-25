@@ -10,3 +10,6 @@
 # Build
 /build
 /dist
+
+.gemini/
+gha-creds-*.json
