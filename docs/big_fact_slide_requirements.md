@@ -14,7 +14,7 @@
 - 余白はキャンバス左右で十分にとり、他要素は配置しない。
 
 ## タイポグラフィ
-- メイン数値: フォント `SF Pro Display` (代替: `Helvetica Neue`, `Arial`, sans-serif)。
+- メイン数値: フォント `inter` (代替: `Helvetica Neue`, `Arial`, sans-serif)。
   - ウェイト: Medium (500)。
   - サイズ: 180pt。
   - 文字色: `#000000`。
