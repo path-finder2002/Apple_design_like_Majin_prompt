@@ -1,6 +1,17 @@
 # ビクファクトスライド要件定義
+## SVG画像コード
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" width="960" height="540">
+  <rect width="960" height="540" fill="#ffffff"/>
+  <text x="480" y="250" text-anchor="middle" dominant-baseline="middle"
+        font-family="'SF Pro Display','Helvetica Neue',Arial,sans-serif"
+        font-size="180" font-weight="500" fill="#000000">2x</text>
+  <text x="480" y="400" text-anchor="middle" dominant-baseline="middle"
+        font-family="'SF Pro Display','Helvetica Neue',Arial,sans-serif"
+        font-size="36" font-weight="400" fill="#6e6e73">Encoding Faster</text>
+</svg>
+```
 
-![Playgroundスライド参照](../Playground.svg)
 
 ## 目的
 - エンコード性能向上をシンプルに訴求する「2x」メッセージを端的に伝える。
