@@ -97,6 +97,35 @@ function toggleTheme() {
   logInfo('toggleTheme:updated', { from: current, to: next });
 }
 
+function applyNamedTheme(themeKey) {
+  const props = PropertiesService.getScriptProperties();
+  const stored = props.getProperty('themeMode');
+  const current = THEMES[stored] ? stored : getActiveTheme();
+
+  if (current === themeKey) {
+    SlidesApp.getUi().alert(`${THEMES[themeKey].label}は既に適用されています。`);
+    return;
+  }
+
+  props.setProperty('themeMode', themeKey);
+  applyTheme(themeKey);
+
+  try {
+    refreshPresentationTheme(current, themeKey);
+  } catch (e) {
+    logError('applyNamedTheme:refreshFailed', e);
+  }
+
+  try {
+    onOpen();
+  } catch (e) {
+    logError('applyNamedTheme:onOpenRefreshFailed', e);
+  }
+
+  SlidesApp.getUi().alert(`${THEMES[themeKey].label}に切り替えました。`);
+  logInfo('applyNamedTheme:updated', { from: current, to: themeKey });
+}
+
 function refreshPresentationTheme(fromThemeKey, toThemeKey) {
   const fromTheme = THEMES[fromThemeKey] || THEMES.light;
   const toTheme = THEMES[toThemeKey] || THEMES.light;
@@ -127,11 +156,9 @@ function buildThemeColorIndex(colors) {
 function updateSlideBackground(slide, fromColorIndex, toColors) {
   try {
     const background = slide.getBackground();
-    const fill = background.getFill();
-    const hex = getFillHex(fill);
-    const colorKey = hex ? fromColorIndex[hex] : null;
-    if (colorKey && toColors[colorKey]) {
-      background.setSolidFill(toColors[colorKey]);
+    // テーマの canvas カラーを直接背景に設定
+    if (toColors.canvas) {
+      background.setSolidFill(toColors.canvas);
     }
   } catch (e) {
     logError('updateSlideBackground', e);

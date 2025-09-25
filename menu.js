@@ -16,9 +16,26 @@ function onOpen(e) {
       .addItem('太字/解除', 'toggleBold')
       .addItem('全スライド太字/解除', 'toggleBoldAllSlides'))
     .addSeparator()
-    .addItem(getThemeToggleMenuLabel(), 'toggleTheme')
+    .addSubMenu(createThemeToggleSubMenu(ui))
     .addItem('🔄 リセット', 'resetSettings')
     .addToUi();
+}
+
+function createThemeToggleSubMenu(ui) {
+  const menu = ui.createMenu('テーマ・配色');
+  menu.addItem(getThemeToggleMenuLabel(), 'toggleTheme');
+  menu.addSeparator();
+  menu.addItem('ライト適用 (全スライド)', 'applyLightTheme');
+  menu.addItem('ダーク適用 (全スライド)', 'applyDarkTheme');
+  return menu;
+}
+
+function applyLightTheme() {
+  applyNamedTheme('light');
+}
+
+function applyDarkTheme() {
+  applyNamedTheme('dark');
 }
 
 // プライマリカラー設定
