@@ -194,6 +194,81 @@ function createBigFactSlide(slide, data, layout) {
   try { captionShape.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE); } catch (e) {}
 }
 
+function createFullBreedSlide(slide, data, layout) {
+  const bgUrl = data.backgroundImage || CONFIG.IMAGES.fullBreedBackground;
+  try {
+    if (bgUrl) {
+      slide.getBackground().setPictureFill(bgUrl);
+    } else {
+      slide.getBackground().setSolidFill('#1A223A');
+    }
+  } catch (e) {
+    slide.getBackground().setSolidFill('#1A223A');
+  }
+
+  const overlay = slide.insertShape(
+    SlidesApp.ShapeType.RECTANGLE,
+    0,
+    0,
+    layout.pageW_pt,
+    layout.pageH_pt
+  );
+  overlay.getFill().setSolidFill(CONFIG.COLORS.fullBreed_overlay || '#000000');
+  const overlayOpacity = typeof data.overlayOpacity === 'number'
+    ? data.overlayOpacity
+    : CONFIG.POS_PX.fullBreedSlide.overlayOpacity;
+  try {
+    overlay.getFill().setTransparency(Math.min(1, Math.max(0, overlayOpacity)));
+  } catch (e) {}
+  overlay.getBorder().setTransparent();
+
+  const textArea = layout.getRect('fullBreedSlide.textArea');
+  const items = Array.isArray(data.items) ? data.items : [];
+  const itemGapPt = layout.pxToPt(CONFIG.POS_PX.fullBreedSlide.itemGap || 180);
+  const lineHeightPt = layout.pxToPt(140);
+  const fontSize = data.itemSize || CONFIG.FONTS.sizes.fullBreedItem;
+  const textColor = data.textColor || CONFIG.COLORS.fullBreed_text || '#FFFFFF';
+
+  let currentTop = textArea.top;
+
+  items.forEach((raw, index) => {
+    if (index > 0) currentTop += itemGapPt;
+    const entry = String(raw || '');
+    const box = slide.insertShape(
+      SlidesApp.ShapeType.TEXT_BOX,
+      textArea.left,
+      currentTop,
+      textArea.width,
+      lineHeightPt
+    );
+    box.getFill().setTransparent();
+    box.getBorder().setTransparent();
+    const tr = box.getText();
+    tr.setText(entry);
+    applyTextStyle(tr, { size: fontSize, bold: true, color: textColor });
+    try {
+      const style = tr.getTextStyle();
+      style.setFontFamily('Inter');
+    } catch (e) {}
+  });
+
+  if (data.subtitle) {
+    const subtitleBox = slide.insertShape(
+      SlidesApp.ShapeType.TEXT_BOX,
+      textArea.left,
+      currentTop + itemGapPt + layout.pxToPt(60),
+      textArea.width,
+      layout.pxToPt(80)
+    );
+    subtitleBox.getFill().setTransparent();
+    subtitleBox.getBorder().setTransparent();
+    const subtitleRange = subtitleBox.getText();
+    subtitleRange.setText(String(data.subtitle));
+    applyTextStyle(subtitleRange, { size: 28, color: textColor });
+    try { subtitleRange.getTextStyle().setFontFamily('Inter'); } catch (e) {}
+  }
+}
+
 // process（角枠1px＋一桁数字）
 function createProcessSlide(slide, data, layout, pageNum) {
   slide.getBackground().setSolidFill(CONFIG.COLORS.background_white);
@@ -629,4 +704,5 @@ Object.assign(slideGenerators, {
   closing: createClosingSlide,
   statsCompare: createStatsCompareSlide,
   bigFact: createBigFactSlide,
+  fullBreed: createFullBreedSlide,
 });

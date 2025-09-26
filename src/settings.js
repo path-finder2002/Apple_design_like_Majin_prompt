@@ -30,7 +30,9 @@ const LIGHT_THEME_COLORS = {
   neutral_gray: '#9E9E9E',
   ghost_gray: '#EFEFED',
   text_on_primary: '#FFFFFF',
-  bigFact_caption: '#6E6E73'
+  bigFact_caption: '#6E6E73',
+  fullBreed_overlay: '#000000',
+  fullBreed_text: '#FFFFFF'
 };
 
 const DARK_THEME_COLORS = {
@@ -48,7 +50,9 @@ const DARK_THEME_COLORS = {
   neutral_gray: '#8E8E93',
   ghost_gray: '#636366',
   text_on_primary: '#FFFFFF',
-  bigFact_caption: '#D1D1D6'
+  bigFact_caption: '#D1D1D6',
+  fullBreed_overlay: '#000000',
+  fullBreed_text: '#FFFFFF'
 };
 
 const CONFIG = {
@@ -75,6 +79,11 @@ contentSlide: {
 bigFactSlide: {
   mainValue: { left: 0, top: 120, width: 960, height: 200 },
   caption:   { left: 0, top: 360, width: 960, height: 80 }
+},
+fullBreedSlide: {
+  textArea: { left: 100, top: 160, width: 720, height: 520 },
+  itemGap: 180,
+  overlayOpacity: 0.7
 },
 compareSlide: {  
   headerLogo:     { right: 20, top: 20, width: 75 },  
@@ -174,7 +183,8 @@ sizes: {
 title: 40, date: 16, sectionTitle: 38, contentTitle: 28, subhead: 18,
 body: 14, footer: 9, chip: 11, laneTitle: 13, small: 10,
 processStep: 14, axis: 12, ghostNum: 180,
-bigFactMain: 180, bigFactCaption: 36
+bigFactMain: 180, bigFactCaption: 36,
+fullBreedItem: 120
 }
 },
 COLORS: Object.assign({}, LIGHT_THEME_COLORS),
@@ -198,6 +208,10 @@ cardMin_h_px: 48, cardMax_h_px: 70, arrow_h_px: 10, arrowGap_px: 8
 LOGOS: {
 header: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/640px-Google_2015_logo.svg.png',
 closing: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/640px-Google_2015_logo.svg.png'
+},
+
+IMAGES: {
+  fullBreedBackground: 'https://unsplash.com/photos/hkhCV41gOpA/download?force=true&w=2400'
 },
 
 FOOTER_TEXT: `© ${new Date().getFullYear()} Google Inc.`
