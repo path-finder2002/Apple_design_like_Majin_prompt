@@ -1,0 +1,47 @@
+<svg width="1920" height="1080" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
+  <!-- ===== Background sky gradient ===== -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a223a"/>
+      <stop offset="60%" stop-color="#202b47"/>
+      <stop offset="100%" stop-color="#161d33"/>
+    </linearGradient>
+    <linearGradient id="overlay" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#000" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#000" stop-opacity="0.2"/>
+    </linearGradient>
+    <filter id="softShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <!-- Sky -->
+  <rect width="1920" height="1080" fill="url(#sky)"/>
+
+  <!-- ===== Mountains (brightened colors) ===== -->
+  <!-- Far mountains -->
+  <path d="M0,760 L240,700 L400,740 L560,690 L760,720 L980,690 L1180,740 L1400,700 L1620,730 L1920,700 L1920,1080 L0,1080 Z"
+        fill="#2a3b5c"/>
+  <!-- Mid mountains -->
+  <path d="M0,810 L220,760 L420,820 L620,760 L820,820 L1040,780 L1260,840 L1500,780 L1720,820 L1920,780 L1920,1080 L0,1080 Z"
+        fill="#23334f"/>
+  <!-- Foreground main peak -->
+  <path d="M420,1080 L840,400 L1120,840 L1260,700 L1520,980 L1920,1080 Z"
+        fill="#1d2945"/>
+  <!-- Snow cap on main peak -->
+  <path d="M820,520 L840,480 L870,530 L900,570 L860,560 L835,545 Z" fill="#f0f4fa" opacity="0.9"/>
+
+  <!-- Subtle atmospheric fog near base -->
+  <rect x="0" y="860" width="1920" height="220" fill="#1a223a" opacity="0.55"/>
+
+  <!-- Dark overlay for legibility -->
+  <rect width="1920" height="1080" fill="url(#overlay)"/>
+
+  <!-- ===== Agenda text ===== -->
+  <g font-family="Inter, 'SF Pro Display', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+     fill="#FFFFFF" font-weight="700" letter-spacing="0.2px" filter="url(#softShadow)">
+    <text x="120" y="280" font-size="120">Introduction</text>
+    <text x="120" y="460" font-size="120">Contents</text>
+    <text x="120" y="640" font-size="120">Summary</text>
+  </g>
+</svg>
