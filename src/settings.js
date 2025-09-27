@@ -83,7 +83,7 @@ bigFactSlide: {
 fullBreedSlide: {
   textArea: { left: 100, top: 160, width: 720, height: 520 },
   itemGap: 180,
-  overlayOpacity: 0.7
+  overlayOpacity: null
 },
 compareSlide: {  
   headerLogo:     { right: 20, top: 20, width: 75 },  
@@ -184,7 +184,7 @@ title: 40, date: 16, sectionTitle: 38, contentTitle: 28, subhead: 18,
 body: 14, footer: 9, chip: 11, laneTitle: 13, small: 10,
 processStep: 14, axis: 12, ghostNum: 180,
 bigFactMain: 180, bigFactCaption: 36,
-fullBreedItem: 120
+fullBreedItem: 90
 }
 },
 COLORS: Object.assign({}, LIGHT_THEME_COLORS),
@@ -211,7 +211,7 @@ closing: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_
 },
 
 IMAGES: {
-  fullBreedBackground: 'https://unsplash.com/photos/hkhCV41gOpA/download?force=true&w=2400'
+  fullBreedBackground: 'https://unsplash.com/photos/g-d0I9CMnZw/download?force=true&w=2400'
 },
 
 FOOTER_TEXT: `© ${new Date().getFullYear()} Google Inc.`

@@ -206,21 +206,25 @@ function createFullBreedSlide(slide, data, layout) {
     slide.getBackground().setSolidFill('#1A223A');
   }
 
-  const overlay = slide.insertShape(
-    SlidesApp.ShapeType.RECTANGLE,
-    0,
-    0,
-    layout.pageW_pt,
-    layout.pageH_pt
-  );
-  overlay.getFill().setSolidFill(CONFIG.COLORS.fullBreed_overlay || '#000000');
   const overlayOpacity = typeof data.overlayOpacity === 'number'
     ? data.overlayOpacity
     : CONFIG.POS_PX.fullBreedSlide.overlayOpacity;
-  try {
-    overlay.getFill().setTransparency(Math.min(1, Math.max(0, overlayOpacity)));
-  } catch (e) {}
-  overlay.getBorder().setTransparent();
+
+  if (typeof overlayOpacity === 'number' && overlayOpacity >= 0 && overlayOpacity < 1) {
+    const overlay = slide.insertShape(
+      SlidesApp.ShapeType.RECTANGLE,
+      0,
+      0,
+      layout.pageW_pt,
+      layout.pageH_pt
+    );
+    overlay.getFill().setSolidFill(CONFIG.COLORS.fullBreed_overlay || '#000000');
+    try {
+      const transparency = Math.min(1, Math.max(0, overlayOpacity));
+      overlay.getFill().setTransparency(transparency);
+    } catch (e) {}
+    overlay.getBorder().setTransparent();
+  }
 
   const textArea = layout.getRect('fullBreedSlide.textArea');
   const items = Array.isArray(data.items) ? data.items : [];
