@@ -231,6 +231,7 @@ function createFullBreedSlide(slide, data, layout) {
   const itemGapPt = layout.pxToPt(CONFIG.POS_PX.fullBreedSlide.itemGap || 180);
   const lineHeightPt = layout.pxToPt(140);
   const fontSize = data.itemSize || CONFIG.FONTS.sizes.fullBreedItem;
+  const subtitleSize = data.subtitleSize || CONFIG.FONTS.sizes.fullBreedSubtitle;
   const textColor = data.textColor || CONFIG.COLORS.fullBreed_text || '#FFFFFF';
 
   let currentTop = textArea.top;
@@ -268,7 +269,7 @@ function createFullBreedSlide(slide, data, layout) {
     subtitleBox.getBorder().setTransparent();
     const subtitleRange = subtitleBox.getText();
     subtitleRange.setText(String(data.subtitle));
-    applyTextStyle(subtitleRange, { size: 28, color: textColor });
+    applyTextStyle(subtitleRange, { size: subtitleSize, color: textColor });
     try { subtitleRange.getTextStyle().setFontFamily('Inter'); } catch (e) {}
   }
 }
