@@ -1,9 +1,9 @@
 // --- 3. スライドデータ（サンプル：必ず置換してください） ---
 const slideData = [
-  { type: 'title', 
-    title: 'Google Workspace 新機能提案', 
-    date: '2025.08.24', 
-    notes: '本日は、AIを活用した新しいコラボレーション機能についてご提案します。' 
+  { type: 'title',
+    title: 'Google Workspace 新機能提案',
+    subtitle: 'AI活用でコラボレーション体験を再定義する',
+    notes: '全面ブラックのミニマル仕様で、開始直後に集中を集める構成。'
   },
   {
     type: 'fullBreed',

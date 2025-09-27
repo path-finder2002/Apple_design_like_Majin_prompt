@@ -2,27 +2,70 @@
 var slideGenerators = this.slideGenerators || (this.slideGenerators = {});
 
 function createTitleSlide(slide, data, layout) {
-  slide.getBackground().setSolidFill(CONFIG.COLORS.background_white);
-
-  const logoRect = layout.getRect('titleSlide.logo');
-  try {
-    const logo = slide.insertImage(CONFIG.LOGOS.header);
-    const aspect = logo.getHeight() / logo.getWidth();
-    logo.setLeft(logoRect.left).setTop(logoRect.top).setWidth(logoRect.width).setHeight(logoRect.width * aspect);
-  } catch (e) {
-    // 画像挿入に失敗した場合はスキップして他の要素を描画
-  }
+  const colors = CONFIG.COLORS;
+  slide.getBackground().setSolidFill(colors.title_bg || '#000000');
 
   const titleRect = layout.getRect('titleSlide.title');
-  const titleShape = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, titleRect.left, titleRect.top, titleRect.width, titleRect.height);
-  setStyledText(titleShape, data.title, { size: CONFIG.FONTS.sizes.title, bold: true });
+  const titleShape = slide.insertShape(
+    SlidesApp.ShapeType.TEXT_BOX,
+    titleRect.left,
+    titleRect.top,
+    titleRect.width,
+    titleRect.height
+  );
+  titleShape.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE);
+  setStyledText(titleShape, String(data.title || ''), {
+    size: CONFIG.FONTS.sizes.title,
+    bold: true,
+    color: colors.title_text || '#FFFFFF',
+    align: SlidesApp.ParagraphAlignment.CENTER
+  });
 
-  const dateRect = layout.getRect('titleSlide.date');
-  const dateShape = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, dateRect.left, dateRect.top, dateRect.width, dateRect.height);
-  dateShape.getText().setText(data.date || '');
-  applyTextStyle(dateShape.getText(), { size: CONFIG.FONTS.sizes.date });
+  if (data.subtitle) {
+    const subtitleRect = layout.getRect('titleSlide.subtitle');
+    const subtitleShape = slide.insertShape(
+      SlidesApp.ShapeType.TEXT_BOX,
+      subtitleRect.left,
+      subtitleRect.top,
+      subtitleRect.width,
+      subtitleRect.height
+    );
+    subtitleShape.setContentAlignment(SlidesApp.ContentAlignment.MIDDLE);
+    setStyledText(subtitleShape, String(data.subtitle || ''), {
+      size: CONFIG.FONTS.sizes.titleSubtitle,
+      color: data.subtitleColor || colors.title_subtitle || colors.neutral_gray,
+      align: SlidesApp.ParagraphAlignment.CENTER
+    });
+  }
 
-  drawBottomBar(slide, layout);
+  // 右下の折り返しアクセント
+  const foldSizePt = layout.pxToPt(CONFIG.POS_PX.titleSlide.foldSize || 150);
+  const highlightSizePt = layout.pxToPt(CONFIG.POS_PX.titleSlide.foldHighlightSize || 90);
+  const foldLeft = layout.pageW_pt - foldSizePt;
+  const foldTop = layout.pageH_pt - foldSizePt;
+  const foldShape = slide.insertShape(
+    SlidesApp.ShapeType.RIGHT_TRIANGLE,
+    foldLeft,
+    foldTop,
+    foldSizePt,
+    foldSizePt
+  );
+  foldShape.setRotation(270);
+  foldShape.getFill().setSolidFill(colors.title_fold_shadow || '#BDBDBD');
+  foldShape.getBorder().setTransparent();
+
+  const highlightLeft = layout.pageW_pt - highlightSizePt;
+  const highlightTop = layout.pageH_pt - highlightSizePt;
+  const highlightShape = slide.insertShape(
+    SlidesApp.ShapeType.RIGHT_TRIANGLE,
+    highlightLeft,
+    highlightTop,
+    highlightSizePt,
+    highlightSizePt
+  );
+  highlightShape.setRotation(270);
+  highlightShape.getFill().setSolidFill(colors.title_fold_highlight || '#F5F5F5');
+  highlightShape.getBorder().setTransparent();
 }
 
 function createSectionSlide(slide, data, layout, pageNum) {

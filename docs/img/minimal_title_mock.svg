@@ -1,0 +1,13 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Minimal Title Slide Mock</title>
+  <desc id="desc">Black canvas with centered white title, grey subtitle, and folded corner accent.</desc>
+  <rect width="1280" height="720" fill="#000000" />
+  <rect x="1130" y="570" width="150" height="150" fill="#BDBDBD" />
+  <path d="M1280 720L1205 720L1280 645Z" fill="#F5F5F5" />
+  <text x="640" y="372" fill="#FFFFFF" font-family="'Inter','Helvetica Neue',Arial,sans-serif" font-size="72" font-weight="700" text-anchor="middle">
+    Presentation Title
+  </text>
+  <text x="640" y="438" fill="#A6A6A6" font-family="'Inter','Helvetica Neue',Arial,sans-serif" font-size="40" font-weight="600" text-anchor="middle">
+    Presentation Subtitle
+  </text>
+</svg>

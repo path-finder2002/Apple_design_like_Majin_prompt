@@ -32,7 +32,12 @@ const LIGHT_THEME_COLORS = {
   text_on_primary: '#FFFFFF',
   bigFact_caption: '#6E6E73',
   fullBreed_overlay: '#000000',
-  fullBreed_text: '#FFFFFF'
+  fullBreed_text: '#FFFFFF',
+  title_bg: '#000000',
+  title_text: '#FFFFFF',
+  title_subtitle: '#A6A6A6',
+  title_fold_shadow: '#BDBDBD',
+  title_fold_highlight: '#F5F5F5'
 };
 
 const DARK_THEME_COLORS = {
@@ -52,7 +57,12 @@ const DARK_THEME_COLORS = {
   text_on_primary: '#FFFFFF',
   bigFact_caption: '#D1D1D6',
   fullBreed_overlay: '#000000',
-  fullBreed_text: '#FFFFFF'
+  fullBreed_text: '#FFFFFF',
+  title_bg: '#000000',
+  title_text: '#FFFFFF',
+  title_subtitle: '#A6A6A6',
+  title_fold_shadow: '#BDBDBD',
+  title_fold_highlight: '#F5F5F5'
 };
 
 const CONFIG = {
@@ -61,9 +71,10 @@ BASE_PX: { W: 960, H: 540 },
 // レイアウトの基準となる不変のpx値
 POS_PX: {
 titleSlide: {
-logo:       { left: 55,  top: 105,  width: 135 },
-title:      { left: 50,  top: 200, width: 830, height: 90 },
-date:       { left: 50,  top: 450, width: 250, height: 40 },
+title:      { left: 140, top: 240, width: 680, height: 120 },
+subtitle:   { left: 140, top: 430, width: 680, height: 70 },
+foldSize: 150,
+foldHighlightSize: 90
 },
 
 // 共通ヘッダーを持つ各スライド  
@@ -178,13 +189,14 @@ bottomBar: { left: 0, top: 534, width: 960, height: 6 }
 
 // フォントと色と図形サイズ
 FONTS: {
-family: 'Arial', // デフォルト、プロパティから動的に変更可能
+family: 'Inter', // デフォルト、プロパティから動的に変更可能
 sizes: {
-title: 40, date: 16, sectionTitle: 38, contentTitle: 28, subhead: 18,
+title: 72, date: 16, titleSubtitle: 40,
+sectionTitle: 38, contentTitle: 28, subhead: 18,
 body: 14, footer: 9, chip: 11, laneTitle: 13, small: 10,
 processStep: 14, axis: 12, ghostNum: 180,
 bigFactMain: 180, bigFactCaption: 36,
-fullBreedItem: 24
+fullBreedItem: 90
 }
 },
 COLORS: Object.assign({}, LIGHT_THEME_COLORS),
