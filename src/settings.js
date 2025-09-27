@@ -191,12 +191,12 @@ bottomBar: { left: 0, top: 534, width: 960, height: 6 }
 FONTS: {
 family: 'Inter', // デフォルト、プロパティから動的に変更可能
 sizes: {
-title: 72, date: 16, titleSubtitle: 40,
+title: 40, date: 16, titleSubtitle: 20,
 sectionTitle: 38, contentTitle: 28, subhead: 18,
 body: 14, footer: 9, chip: 11, laneTitle: 13, small: 10,
 processStep: 14, axis: 12, ghostNum: 180,
-bigFactMain: 180, bigFactCaption: 36,
-fullBreedItem: 90
+bigFactMain: 140, bigFactCaption: 36,
+fullBreedItem: 30
 }
 },
 COLORS: Object.assign({}, LIGHT_THEME_COLORS),

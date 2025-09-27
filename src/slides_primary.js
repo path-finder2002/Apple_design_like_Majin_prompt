@@ -1,6 +1,62 @@
 // --- Slide Generators (Primary) ---
 var slideGenerators = this.slideGenerators || (this.slideGenerators = {});
 
+function normalizeFoldCorner(raw) {
+  if (!raw) return null;
+  let str = String(raw).trim();
+  if (!str) return null;
+
+  str = str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+  str = str.replace(/[_\s]+/g, '-');
+
+  const direct = {
+    'top-left': 'top-left',
+    'left-top': 'top-left',
+    'upper-left': 'top-left',
+    'north-west': 'top-left',
+    'northwest': 'top-left',
+    'nw': 'top-left',
+    'tl': 'top-left',
+    'top-right': 'top-right',
+    'right-top': 'top-right',
+    'upper-right': 'top-right',
+    'north-east': 'top-right',
+    'northeast': 'top-right',
+    'ne': 'top-right',
+    'tr': 'top-right',
+    'bottom-right': 'bottom-right',
+    'right-bottom': 'bottom-right',
+    'lower-right': 'bottom-right',
+    'south-east': 'bottom-right',
+    'southeast': 'bottom-right',
+    'se': 'bottom-right',
+    'br': 'bottom-right',
+    'bottom-left': 'bottom-left',
+    'left-bottom': 'bottom-left',
+    'lower-left': 'bottom-left',
+    'south-west': 'bottom-left',
+    'southwest': 'bottom-left',
+    'sw': 'bottom-left',
+    'bl': 'bottom-left'
+  };
+  if (direct[str]) return direct[str];
+
+  const horizontal = /left|west/.test(str) ? 'left' : (/right|east/.test(str) ? 'right' : null);
+  const vertical = /top|up|north/.test(str) ? 'top' : (/bottom|down|south/.test(str) ? 'bottom' : null);
+
+  const resolvedH = horizontal || 'right';
+  const resolvedV = vertical || 'bottom';
+  return `${resolvedV}-${resolvedH}`;
+}
+
+function detectCornerFromPosition(layout, left, top, size) {
+  const centerX = left + size / 2;
+  const centerY = top + size / 2;
+  const horizontal = centerX <= layout.pageW_pt / 2 ? 'left' : 'right';
+  const vertical = centerY <= layout.pageH_pt / 2 ? 'top' : 'bottom';
+  return `${vertical}-${horizontal}`;
+}
+
 function createTitleSlide(slide, data, layout) {
   const colors = CONFIG.COLORS;
   slide.getBackground().setSolidFill(colors.title_bg || '#000000');
@@ -40,22 +96,30 @@ function createTitleSlide(slide, data, layout) {
 
   // 右下の折り返しアクセント
   const foldSizePt = layout.pxToPt(CONFIG.POS_PX.titleSlide.foldSize || 150);
-  const highlightSizePt = layout.pxToPt(CONFIG.POS_PX.titleSlide.foldHighlightSize || 90);
-  const foldLeft = layout.pageW_pt - foldSizePt;
-  const foldTop = layout.pageH_pt - foldSizePt;
-  const foldShape = slide.insertShape(
-    SlidesApp.ShapeType.RIGHT_TRIANGLE,
-    foldLeft,
-    foldTop,
-    foldSizePt,
-    foldSizePt
-  );
-  foldShape.setRotation(270);
-  foldShape.getFill().setSolidFill(colors.title_fold_shadow || '#BDBDBD');
-  foldShape.getBorder().setTransparent();
+  const highlightBase = CONFIG.POS_PX.titleSlide.foldHighlightSize || 90;
+  const highlightSizePt = Math.min(foldSizePt, layout.pxToPt(highlightBase));
 
-  const highlightLeft = layout.pageW_pt - highlightSizePt;
-  const highlightTop = layout.pageH_pt - highlightSizePt;
+  const preferredCorner = normalizeFoldCorner(
+    (data && (data.titleFoldCorner || data.foldCorner || data.titleFoldDirection)) ||
+    (CONFIG.POS_PX.titleSlide.foldCorner)
+  ) || 'bottom-right';
+
+  let foldLeft = preferredCorner.indexOf('right') !== -1 ? layout.pageW_pt - foldSizePt : 0;
+  let foldTop = preferredCorner.indexOf('bottom') !== -1 ? layout.pageH_pt - foldSizePt : 0;
+
+  if (data && data.titleFoldPosition) {
+    const pos = data.titleFoldPosition;
+    if (typeof pos.left === 'number') foldLeft = pos.left;
+    if (typeof pos.right === 'number') foldLeft = layout.pageW_pt - pos.right - foldSizePt;
+    if (typeof pos.top === 'number') foldTop = pos.top;
+    if (typeof pos.bottom === 'number') foldTop = layout.pageH_pt - pos.bottom - foldSizePt;
+  }
+
+  const effectiveCorner = detectCornerFromPosition(layout, foldLeft, foldTop, foldSizePt);
+  const highlightCorner = effectiveCorner;
+  const offset = Math.max(0, foldSizePt - highlightSizePt);
+  const highlightLeft = foldLeft + (highlightCorner.indexOf('right') !== -1 ? offset : 0);
+  const highlightTop = foldTop + (highlightCorner.indexOf('bottom') !== -1 ? offset : 0);
   const highlightShape = slide.insertShape(
     SlidesApp.ShapeType.RIGHT_TRIANGLE,
     highlightLeft,
@@ -63,9 +127,10 @@ function createTitleSlide(slide, data, layout) {
     highlightSizePt,
     highlightSizePt
   );
-  highlightShape.setRotation(270);
+  highlightShape.setRotation(180);
   highlightShape.getFill().setSolidFill(colors.title_fold_highlight || '#F5F5F5');
   highlightShape.getBorder().setTransparent();
+  try { highlightShape.bringToFront(); } catch (e) {}
 }
 
 function createSectionSlide(slide, data, layout, pageNum) {
