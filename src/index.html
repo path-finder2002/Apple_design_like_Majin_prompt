@@ -600,6 +600,30 @@
     localStorage.setItem(presetsKey, JSON.stringify(presets));
   }
 
+  function persistSelectedPreset(presetName) {
+    const normalizedName = (presetName || '').trim();
+    loadedSettings.selectedPreset = normalizedName;
+
+    if (!isGasRuntimeAvailable || !google.script || !google.script.run ||
+        typeof google.script.run.saveSelectedPreset !== 'function') {
+      logClient('debug', 'Skipped persisting preset (GAS runtime unavailable)', { normalizedName });
+      return;
+    }
+
+    try {
+      google.script.run
+        .withSuccessHandler(function() {
+          logClient('info', 'Persisted selected preset', { preset: normalizedName });
+        })
+        .withFailureHandler(function(error) {
+          logClient('warn', 'Failed to persist selected preset', error && error.message);
+        })
+        .saveSelectedPreset(normalizedName);
+    } catch (error) {
+      logClient('warn', 'Exception while persisting selected preset', error && error.message);
+    }
+  }
+
   function updatePresetSelect() {
     const presets = loadUserPresets();
     const select = $("presetSelect");
@@ -612,6 +636,11 @@
       option.textContent = name;
       select.appendChild(option);
     });
+
+    const desired = loadedSettings && loadedSettings.selectedPreset;
+    if (desired && presets[desired]) {
+      select.value = desired;
+    }
   }
 
   function saveCurrentPreset() {
@@ -628,19 +657,32 @@
     saveUserPresets(presets);
     updatePresetSelect();
     $("presetSelect").value = name.trim();
+    persistSelectedPreset(name.trim());
     showStatus(`✅ プリセット「${name.trim()}」を保存しました`, 'success', 3000);
   }
 
-  function loadSelectedPreset() {
-    const presetName = $("presetSelect").value;
-    if (!presetName) return;
-    
+  function loadSelectedPreset(presetName) {
+    const targetPreset = typeof presetName === 'string' ? presetName : $("presetSelect").value;
+    if (!targetPreset) {
+      if (loadedSettings.selectedPreset) {
+        persistSelectedPreset('');
+      }
+      return;
+    }
+
     const presets = loadUserPresets();
-    const settings = presets[presetName];
-    
+    const settings = presets[targetPreset];
+
     if (settings) {
+      if ((loadedSettings.selectedPreset || '') !== (targetPreset || '')) {
+        persistSelectedPreset(targetPreset);
+      }
       applyAllSettings(settings);
-      showStatus(`✅ プリセット「${presetName}」を適用しました`, 'success', 3000);
+      loadedSettings.selectedPreset = targetPreset;
+      showStatus(`✅ プリセット「${targetPreset}」を適用しました`, 'success', 3000);
+    } else {
+      persistSelectedPreset('');
+      showStatus(`⚠️ プリセット「${targetPreset}」が見つかりません`, 'error', 4000);
     }
   }
 
@@ -769,7 +811,11 @@
     $("slideDataInput").addEventListener('input', validateJSON);
     
     $("presetSelect").addEventListener('change', function() {
-      if (this.value) loadSelectedPreset();
+      const selectedName = this.value;
+      persistSelectedPreset(selectedName);
+      if (selectedName) {
+        loadSelectedPreset(selectedName);
+      }
     });
 
     $("savePreset").addEventListener('click', saveCurrentPreset);
