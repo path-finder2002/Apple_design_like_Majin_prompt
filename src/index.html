@@ -27,19 +27,20 @@
       font-style: normal;
     }
     :root {
-      --md-sys-color-primary: #6750A4;
+      /* Monochrome light theme */
+      --md-sys-color-primary: #2F2F2F;
       --md-sys-color-on-primary: #FFFFFF;
-      --md-sys-color-primary-container: #EADDFF;
-      --md-sys-color-on-primary-container: #21005D;
-      --md-sys-color-secondary: #625B71;
+      --md-sys-color-primary-container: #EAEAEA;
+      --md-sys-color-on-primary-container: #1F1F1F;
+      --md-sys-color-secondary: #4A4A4A;
       --md-sys-color-on-secondary: #FFFFFF;
-      --md-sys-color-surface: #FEF7FF;
-      --md-sys-color-on-surface: #1C1B1F;
-      --md-sys-color-surface-variant: #E7E0EC;
-      --md-sys-color-on-surface-variant: #49454F;
-      --md-sys-color-background: #FDF8FF;
-      --md-sys-color-on-background: #1C1B1F;
-      --md-sys-color-outline: #79747E;
+      --md-sys-color-surface: #FFFFFF;
+      --md-sys-color-on-surface: #1A1A1A;
+      --md-sys-color-surface-variant: #EFEFEF;
+      --md-sys-color-on-surface-variant: #6A6A6A;
+      --md-sys-color-background: #FAFAFA;
+      --md-sys-color-on-background: #1A1A1A;
+      --md-sys-color-outline: #CFCFCF;
       --md-sys-color-error: #B3261E;
       --md-sys-color-success: #0E6F4B;
       --md-sys-color-warning: #B68200;
@@ -50,10 +51,11 @@
       --font-family-sans: 'Roboto', 'Noto Sans JP', 'Inter', 'Helvetica Neue', Arial, sans-serif;
       --font-family-mono: 'Fira Code', 'Roboto Mono', 'Consolas', monospace;
 
-      --google-blue: #6750A4;
-      --google-red: #B3261E;
-      --google-yellow: #F9CF58;
-      --google-green: #0E6F4B;
+      /* Google brand official colors */
+      --google-blue: #4285F4;
+      --google-red: #EA4335;
+      --google-yellow: #FBBC05;
+      --google-green: #34A853;
       --primary-text: var(--md-sys-color-on-background);
       --secondary-text: var(--md-sys-color-on-surface-variant);
       --border-color: var(--md-sys-color-surface-variant);
@@ -196,13 +198,13 @@
     }
 
     .theme-toggle:hover {
-      background: rgba(103, 80, 164, 0.08);
+      background: rgba(0, 0, 0, 0.06);
       transform: scale(1.05);
     }
 
     .theme-toggle:focus-visible {
       outline: none;
-      box-shadow: 0 0 0 3px rgba(103, 80, 164, 0.3);
+      box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.25);
     }
 
     .theme-toggle:active {
@@ -222,10 +224,11 @@
 
     .hero h1 {
       font-size: 40px;
-      font-weight: 600;
+      font-weight: 500;
       margin: 0;
       letter-spacing: -0.5px;
       color: var(--md-sys-color-on-background);
+      font-family: 'Product Sans';
     }
 
     .g-word {
@@ -759,6 +762,9 @@
             <div class="validation-details" id="validationDetails"></div>
           </div>
           <textarea id="slideDataInput" placeholder="ここにJSONデータを貼り付けます"></textarea>
+          <div style="margin-top:12px; display:flex; justify-content:flex-end;">
+            <button id="resetJsonBtn" type="button" class="btn btn-secondary" style="width:auto; padding:10px 16px;">リセット</button>
+          </div>
         </div>
       </div>
       <div class="card">
@@ -1021,7 +1027,7 @@
       logClient('info', 'Theme applied', theme);
     }
 
-    function toggleUITheme() {
+  function toggleUITheme() {
       const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
       const newTheme = currentTheme === 'light' ? 'dark' : 'light';
       
@@ -1067,6 +1073,19 @@
         }, duration);
       }
     }
+  }
+
+  // Reset textarea content and validation UI
+  function resetJsonInput() {
+    const el = $("slideDataInput");
+    if (!el) return;
+    el.value = '';
+    const vs = $("validationStatus");
+    const vd = $("validationDetails");
+    if (vs) {
+      vs.innerHTML = '<span class="validation-icon material-icons">hourglass_empty</span><span class="validation-text">JSON形式をチェック中...</span>';
+    }
+    if (vd) vd.textContent = '';
   }
 
   function updateSeparatorStyles() {
@@ -1450,6 +1469,8 @@
     });
 
     $("savePreset").addEventListener('click', saveCurrentPreset);
+    const resetBtn = $("resetJsonBtn");
+    if (resetBtn) resetBtn.addEventListener('click', resetJsonInput);
     
     $("openFolderBtn").addEventListener('click', () => openUrl($("driveFolderUrl").value.trim()));
     
