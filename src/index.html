@@ -613,11 +613,6 @@
       color: var(--md-sys-color-on-primary);
     }
 
-    .btn-preset-danger {
-      background: var(--google-red);
-      color: #fff;
-    }
-
     .gradient-preview-box {
       height: 54px;
       border-radius: var(--md-sys-shape-corner-small);
@@ -777,7 +772,6 @@
                   <option value="">プリセットを選択...</option>
                 </select>
                 <button id="savePreset" type="button" class="btn btn-preset">保存</button>
-                <button id="deletePreset" type="button" class="btn btn-preset-danger" disabled>削除</button>
               </div>
             </div>
           </div>
@@ -1288,18 +1282,15 @@
   function updatePresetSelect() {
     const presets = loadUserPresets();
     const select = $("presetSelect");
-    const deleteBtn = $("deletePreset");
-    
+
     select.innerHTML = '<option value="">プリセットを選択...</option>';
-    
+
     Object.keys(presets).forEach(name => {
       const option = document.createElement('option');
       option.value = name;
       option.textContent = name;
       select.appendChild(option);
     });
-    
-    deleteBtn.disabled = select.value === '';
   }
 
   function saveCurrentPreset() {
@@ -1330,17 +1321,6 @@
       applyAllSettings(settings);
       showStatus(`✅ プリセット「${presetName}」を適用しました`, 'success', 3000);
     }
-  }
-
-  function deleteSelectedPreset() {
-    const presetName = $("presetSelect").value;
-    if (!presetName || !confirm(`プリセット「${presetName}」を削除しますか？`)) return;
-    
-    const presets = loadUserPresets();
-    delete presets[presetName];
-    saveUserPresets(presets);
-    updatePresetSelect();
-    showStatus(`✅ プリセット「${presetName}」を削除しました`, 'success', 3000);
   }
 
   function validateJSON() {
@@ -1466,12 +1446,10 @@
     $("slideDataInput").addEventListener('input', validateJSON);
     
     $("presetSelect").addEventListener('change', function() {
-      $("deletePreset").disabled = this.value === '';
       if (this.value) loadSelectedPreset();
     });
-    
+
     $("savePreset").addEventListener('click', saveCurrentPreset);
-    $("deletePreset").addEventListener('click', deleteSelectedPreset);
     
     $("openFolderBtn").addEventListener('click', () => openUrl($("driveFolderUrl").value.trim()));
     
