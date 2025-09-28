@@ -63,6 +63,38 @@
       --hr-height: 4px;
       --hr-color: var(--md-sys-color-primary);
       --hr-margin-top: 16px;
+      
+      /* Theme transition properties */
+      transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    }
+
+    /* Dark theme variables */
+    [data-theme="dark"] {
+      --md-sys-color-primary: #D0BCFF;
+      --md-sys-color-on-primary: #381E72;
+      --md-sys-color-primary-container: #4F378B;
+      --md-sys-color-on-primary-container: #EADDFF;
+      --md-sys-color-secondary: #CCC2DC;
+      --md-sys-color-on-secondary: #332D41;
+      --md-sys-color-surface: #141218;
+      --md-sys-color-on-surface: #E6E0E9;
+      --md-sys-color-surface-variant: #49454F;
+      --md-sys-color-on-surface-variant: #CAC4D0;
+      --md-sys-color-background: #101014;
+      --md-sys-color-on-background: #E6E0E9;
+      --md-sys-color-outline: #938F99;
+      --md-sys-color-error: #F2B8B5;
+      --md-sys-color-success: #4DDAB4;
+      --md-sys-color-warning: #F2CC5C;
+
+      --google-blue: #D0BCFF;
+      --google-red: #F2B8B5;
+      --google-yellow: #F2CC5C;
+      --google-green: #4DDAB4;
+      --primary-text: var(--md-sys-color-on-background);
+      --secondary-text: var(--md-sys-color-on-surface-variant);
+      --border-color: rgba(147, 143, 153, 0.24);
+      --surface-color: var(--md-sys-color-surface);
     }
 
     *, *::before, *::after {
@@ -77,6 +109,7 @@
       min-height: 100vh;
       line-height: 1.6;
       text-rendering: optimizeLegibility;
+      transition: background-color 0.3s ease, color 0.3s ease;
     }
 
     a {
@@ -144,6 +177,36 @@
     .top-app-bar .app-meta {
       display: flex;
       flex-direction: column;
+    }
+
+    .theme-toggle {
+      margin-left: auto;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      border: none;
+      border-radius: 50%;
+      background: transparent;
+      color: var(--md-sys-color-on-surface);
+      cursor: pointer;
+      transition: background-color 0.2s ease, transform 0.2s ease;
+      font-size: 24px;
+    }
+
+    .theme-toggle:hover {
+      background: rgba(103, 80, 164, 0.08);
+      transform: scale(1.05);
+    }
+
+    .theme-toggle:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(103, 80, 164, 0.3);
+    }
+
+    .theme-toggle:active {
+      transform: scale(0.95);
     }
 
     main.container {
@@ -246,6 +309,11 @@
       box-shadow: 0 0 0 3px rgba(103, 80, 164, 0.18);
     }
 
+    [data-theme="dark"] #slideDataInput {
+      background: rgba(20, 18, 24, 0.96);
+      border-color: var(--md-sys-color-outline);
+    }
+
     .settings-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -291,8 +359,14 @@
       font-size: 14px;
       background: rgba(255,255,255,0.96);
       color: var(--md-sys-color-on-surface);
-      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.3s ease;
       appearance: none;
+    }
+
+    [data-theme="dark"] .settings-grid input[type="text"],
+    [data-theme="dark"] .settings-grid select {
+      background: rgba(20, 18, 24, 0.96);
+      border-color: var(--md-sys-color-outline);
     }
 
     .settings-grid input[type="text"]:focus,
@@ -668,6 +742,9 @@
       <span class="app-title">Google Majin Slide Generator</span>
       <span class="app-subtitle">JSONからGoogleスライドをデザインするマテリアル体験</span>
     </div>
+    <button id="themeToggle" class="theme-toggle" aria-label="テーマを切り替え">
+      <span class="material-icons">light_mode</span>
+    </button>
   </header>
   <main class="container">
     <section class="hero">
@@ -903,6 +980,78 @@
     }
 
     const isGasRuntimeAvailable = typeof google !== 'undefined' && google.script && google.script.run;
+
+    // Theme management functions
+    function detectSystemTheme() {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+
+    function saveThemePreference(theme) {
+      try {
+        localStorage.setItem('slideGenerator_theme', theme);
+        logClient('info', 'Theme preference saved', theme);
+      } catch (error) {
+        logClient('warn', 'Failed to save theme preference', error.message);
+      }
+    }
+
+    function loadThemePreference() {
+      try {
+        const saved = localStorage.getItem('slideGenerator_theme');
+        if (saved && (saved === 'light' || saved === 'dark')) {
+          return saved;
+        }
+      } catch (error) {
+        logClient('warn', 'Failed to load theme preference', error.message);
+      }
+      return detectSystemTheme();
+    }
+
+    function updateThemeToggleButton(theme) {
+      const toggleButton = $('themeToggle');
+      const icon = toggleButton.querySelector('.material-icons');
+      
+      if (theme === 'dark') {
+        icon.textContent = 'dark_mode';
+        toggleButton.setAttribute('aria-label', 'ライトテーマに切り替え');
+      } else {
+        icon.textContent = 'light_mode';
+        toggleButton.setAttribute('aria-label', 'ダークテーマに切り替え');
+      }
+    }
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      updateThemeToggleButton(theme);
+      logClient('info', 'Theme applied', theme);
+    }
+
+    function toggleUITheme() {
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+      
+      applyTheme(newTheme);
+      saveThemePreference(newTheme);
+      
+      logClient('info', 'Theme toggled', { from: currentTheme, to: newTheme });
+    }
+
+    function initializeTheme() {
+      const preferredTheme = loadThemePreference();
+      applyTheme(preferredTheme);
+      
+      // Listen for system theme changes
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      mediaQuery.addEventListener('change', function(e) {
+        // Only auto-switch if user hasn't manually set a preference
+        const savedTheme = localStorage.getItem('slideGenerator_theme');
+        if (!savedTheme) {
+          const systemTheme = e.matches ? 'dark' : 'light';
+          applyTheme(systemTheme);
+          logClient('info', 'System theme change detected', systemTheme);
+        }
+      });
+    }
 
   function $(id){ return document.getElementById(id); }
 
@@ -1212,10 +1361,16 @@
   }
 
   document.addEventListener('DOMContentLoaded', function() {
+    // Initialize theme first
+    initializeTheme();
+    
     loadSettingsToForm();
     logClient('info', 'DOMContentLoaded initialised');
 
     $("generateBtn").addEventListener('click', generate);
+    
+    // Theme toggle event listener
+    $("themeToggle").addEventListener('click', toggleUITheme);
 
     ['primaryColor', 'gradientStart', 'gradientEnd', 'hrColor'].forEach(id => {
       $(id).addEventListener('input', function() { $(id + 'Text').value = this.value; if(id.includes('hr')) updateSeparatorStyles(); });
