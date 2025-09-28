@@ -1,4 +1,8 @@
 {
   "scriptId": "1XY9GtwUp0Luc3J18eAeG_6-yic6ldy4dw7KhBlTegDPSgaBWZ-_M4A-T",
-  "rootDir": "src"
+  "rootDir": "src",
+  "filePushOrder": [
+    "ui/**",
+    "**"
+  ]
 }
