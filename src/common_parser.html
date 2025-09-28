@@ -1,0 +1,36 @@
+<script>
+// クライアント側共通パーサ（Apps Script テンプレートから取り込まれる想定）
+// サーバー側の parseSlideDataStrict と同等の仕様・メッセージに合わせる
+window.SlideDataParser = (function() {
+  function makeError(message) {
+    const err = new Error(message);
+    err.name = 'SlideDataParseError';
+    return err;
+  }
+
+  function parseStrict(jsonText) {
+    const text = String(jsonText || '').trim();
+    if (!text) throw makeError('JSON文字列が空です');
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      throw makeError(`JSONの構文エラー: ${e.message}`);
+    }
+    if (!Array.isArray(data)) throw makeError('slideDataは配列である必要があります');
+    for (let i = 0; i < data.length; i++) {
+      const item = data[i];
+      if (item === null || typeof item !== 'object' || Array.isArray(item)) {
+        throw makeError(`スライド#${i + 1} はオブジェクトである必要があります`);
+      }
+      if (!item.type || typeof item.type !== 'string') {
+        throw makeError(`スライド#${i + 1} のtypeは必須です`);
+      }
+    }
+    return data;
+  }
+
+  return { parseStrict };
+})();
+</script>
+

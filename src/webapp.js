@@ -22,6 +22,11 @@ function doGet(e) {
   return result;
 }
 
+// HTML テンプレートから部分テンプレートを読み込むための include ヘルパー
+function include(filename) {
+  return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}
+
 function saveSettings(settings) {
   try {
     logDebug('saveSettings called', {
@@ -116,14 +121,17 @@ function generateSlidesFromWebApp(slideDataString, settings) {
       payloadBytes: slideDataString ? slideDataString.length : 0,
       hasSettings: Boolean(settings)
     });
-    const slideData = JSON.parse(slideDataString);
+    // 共通パーサで厳格に検証・パース
+    const slideData = parseSlideDataStrict(slideDataString);
     const result = createPresentation(slideData, settings);
     logDebug('generateSlidesFromWebApp completed', {
       slideCount: Array.isArray(slideData) ? slideData.length : 0
     });
     return result;
   } catch (e) {
-    Logger.log(`Error: ${e.message}\nStack: ${e.stack}`);
+    // 改行のエスケープを修正（実際の改行を出力）
+    Logger.log(`Error: ${e.message}
+Stack: ${e.stack}`);
     logDebug('generateSlidesFromWebApp failed', { error: e.message });
     throw new Error(`Server error: ${e.message}`);
   }

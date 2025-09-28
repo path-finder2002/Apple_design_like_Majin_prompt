@@ -951,7 +951,7 @@
     </div>
   </main>
 
-  
+  <?!= include('common_parser'); ?>
   <script>
     let loadedSettings = {};
     const clientLogPrefix = '[SlideGenerator]';
@@ -1156,9 +1156,10 @@
       showStatus('エラー: スライドデータが空です。', 'error', 5000);
       return;
     }
-    try { 
-      JSON.parse(slideDataString); 
-    } catch(e) { 
+    try {
+      // 共通パーサで厳格に検証（メッセージをサーバーと統一）
+      SlideDataParser.parseStrict(slideDataString);
+    } catch (e) {
       showStatus('エラー: JSON形式が正しくありません。' + e.message, 'error', 5000);
       logClient('error', 'JSON parse failed', e.message);
       return;
@@ -1326,9 +1327,7 @@
     }
     
     try {
-      const parsed = JSON.parse(jsonText);
-      if (!Array.isArray(parsed)) throw new Error('slideDataは配列である必要があります');
-      
+      const parsed = SlideDataParser.parseStrict(jsonText);
       statusIcon.textContent = 'check_circle';
       statusIcon.style.color = 'var(--google-green)';
       statusText.textContent = `JSON形式: 正常 (${parsed.length}枚のスライド)`;
