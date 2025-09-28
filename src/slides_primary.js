@@ -872,6 +872,7 @@ function createProgressSlide(slide, data, layout, pageNum, settings) {
 }
 
 function createQuoteSlide(slide, data, layout, pageNum, settings) {
+  logDebug('createQuoteSlide start', { title: data.title, pageNum });
   setMainSlideBackground(slide, layout);
   drawStandardTitleHeader(slide, layout, 'quoteSlide', data.title || '引用', settings);
   const dy = drawSubheadIfAny(slide, layout, 'quoteSlide', data.subhead);
@@ -1363,4 +1364,6 @@ function drawFaqItems(slide, items, layout, listArea, settings) {
     
     currentY += cardHeight + GAP_ITEM;
   });
+}
+});
 }

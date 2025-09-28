@@ -1,17 +1,41 @@
+function logDebug(message, payload) {
+  const prefix = `[SlideGenerator] ${message}`;
+  if (typeof payload === 'undefined') {
+    Logger.log(prefix);
+    return;
+  }
+  try {
+    Logger.log(`${prefix} :: ${JSON.stringify(payload)}`);
+  } catch (error) {
+    Logger.log(`${prefix} :: (payload serialization failed: ${error.message})`);
+  }
+}
+
 function doGet(e) {
+  logDebug('doGet invoked', {
+    queryKeys: e && e.parameter ? Object.keys(e.parameter) : []
+  });
   const htmlTemplate = HtmlService.createTemplateFromFile('index');
   htmlTemplate.settings = loadSettings();
-  return htmlTemplate.evaluate().setTitle('Google Slide Generator').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT);
+  const result = htmlTemplate.evaluate().setTitle('Google Slide Generator').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT);
+  logDebug('doGet template evaluated');
+  return result;
 }
 
 function saveSettings(settings) {
   try {
+    logDebug('saveSettings called', {
+      providedKeys: Object.keys(settings || {})
+    });
     const storableSettings = Object.assign({}, settings);
     storableSettings.showTitleUnderline = String(storableSettings.showTitleUnderline);
     storableSettings.showBottomBar = String(storableSettings.showBottomBar);
     storableSettings.showDateColumn = String(storableSettings.showDateColumn); // 日付カラム設定を追加
     storableSettings.enableGradient = String(storableSettings.enableGradient);
     PropertiesService.getUserProperties().setProperties(storableSettings, false);
+    logDebug('saveSettings persisted', {
+      storeSize: Object.keys(storableSettings).length
+    });
     return {
       status: 'success',
       message: '設定を保存しました。'
@@ -27,6 +51,7 @@ function saveSettings(settings) {
 
 function saveSelectedPreset(presetName) {
   try {
+    logDebug('saveSelectedPreset called', { presetName });
     PropertiesService.getUserProperties().setProperty('selectedPreset', presetName);
     return {
       status: 'success',
@@ -43,6 +68,7 @@ function saveSelectedPreset(presetName) {
 
 function loadSettings() {
   const properties = PropertiesService.getUserProperties().getProperties();
+  logDebug('loadSettings read properties', { availableKeys: Object.keys(properties) });
   return {
     primaryColor: properties.primaryColor || '#4285F4',
     gradientStart: properties.gradientStart || '#4285F4',
@@ -70,6 +96,9 @@ function loadSettings() {
 
 /** settingsオブジェクトに基づき、CONFIG内の動的カラーを更新します */
 function updateDynamicColors(settings) {
+  logDebug('updateDynamicColors invoked', {
+    primaryColor: settings.primaryColor
+  });
   const primary = settings.primaryColor;
   CONFIG.COLORS.background_gray = generateTintedGray(primary, 10, 98); 
   CONFIG.COLORS.faint_gray = generateTintedGray(primary, 10, 93);
@@ -83,10 +112,19 @@ function updateDynamicColors(settings) {
 
 function generateSlidesFromWebApp(slideDataString, settings) {
   try {
+    logDebug('generateSlidesFromWebApp started', {
+      payloadBytes: slideDataString ? slideDataString.length : 0,
+      hasSettings: Boolean(settings)
+    });
     const slideData = JSON.parse(slideDataString);
-    return createPresentation(slideData, settings);
+    const result = createPresentation(slideData, settings);
+    logDebug('generateSlidesFromWebApp completed', {
+      slideCount: Array.isArray(slideData) ? slideData.length : 0
+    });
+    return result;
   } catch (e) {
     Logger.log(`Error: ${e.message}\nStack: ${e.stack}`);
+    logDebug('generateSlidesFromWebApp failed', { error: e.message });
     throw new Error(`Server error: ${e.message}`);
   }
 }
@@ -94,6 +132,7 @@ function clearLegacyUserProperties() {
   try {
     // ユーザープロパティを全て取得
     const properties = PropertiesService.getUserProperties().getProperties();
+    logDebug('clearLegacyUserProperties fetched props', { availableKeys: Object.keys(properties) });
     
     // 削除対象のキー（プリセット機能追加前の設定）
     const legacyKeys = [
@@ -129,7 +168,7 @@ function clearLegacyUserProperties() {
       keysToDelete.forEach(key => {
         userProperties.deleteProperty(key);
       });
-      Logger.log(`削除されたレガシープロパティ: ${keysToDelete.join(', ')}`);
+      logDebug('clearLegacyUserProperties removed keys', { keys: keysToDelete });
       return {
         status: 'success',
         message: `${keysToDelete.length}個のレガシープロパティを削除しました。`,

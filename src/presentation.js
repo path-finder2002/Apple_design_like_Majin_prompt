@@ -2,6 +2,10 @@ let __SECTION_COUNTER = 0;
 let __SLIDE_DATA_FOR_AGENDA = [];
 
 function createPresentation(slideData, settings) {
+  logDebug('createPresentation start', {
+    totalSlides: Array.isArray(slideData) ? slideData.length : 0,
+    titleType: slideData && slideData[0] ? slideData[0].type : undefined
+  });
   updateDynamicColors(settings);
   CONFIG.COLORS.primary_color = settings.primaryColor || CONFIG.COLORS.primary_color;
   CONFIG.FOOTER_TEXT = settings.footerText;
@@ -28,14 +32,16 @@ function createPresentation(slideData, settings) {
     // 日付カラムがオフの場合：ファイル名に日付を付与しない
     finalName = singleLineTitle || 'Google Slide Generator Presentation';
   }
+  logDebug('createPresentation resolved filename', { finalName });
   const presentation = SlidesApp.create(finalName);
   presentation.getSlides()[0].remove();
 
   if (settings.driveFolderId && settings.driveFolderId.trim()) {
     try {
       DriveApp.getFileById(presentation.getId()).moveTo(DriveApp.getFolderById(settings.driveFolderId.trim()));
+      logDebug('createPresentation moved file to folder', { folderId: settings.driveFolderId.trim() });
     } catch (e) {
-      Logger.log(`フォルダ移動エラー: ${e.message}`);
+      logDebug('createPresentation folder move failed', { error: e.message });
     }
   }
 
@@ -50,6 +56,10 @@ function createPresentation(slideData, settings) {
         pageCounter++;
       }
       if (generator) {
+        logDebug('createPresentation rendering slide', {
+          type: data.type,
+          pageCounter
+        });
         const slide = presentation.appendSlide(SlidesApp.PredefinedLayout.BLANK);
         generator(slide, data, layout, pageCounter, settings);
         
@@ -60,9 +70,15 @@ function createPresentation(slideData, settings) {
         }
       }
     } catch (e) {
-      Logger.log(`Slide generation skipped: Type: ${data.type}, Error: ${e.message}`);
+      logDebug('createPresentation slide generation skipped', {
+        type: data && data.type,
+        error: e.message
+      });
     }
   }
+  logDebug('createPresentation finished', {
+    generatedSlides: presentation.getSlides().length
+  });
   return presentation.getUrl();
 }
 

@@ -80,6 +80,7 @@ Google Apps Script を用いて Apple らしいミニマルな Google スライ�
 - `Exception: Request had insufficient authentication scopes.` が出た場合は、`src/appsscript.json` の `oauthScopes` が最新か確認し、`clasp login` → `clasp push` で再デプロイする。
 - ロゴや背景画像が表示されない場合は、共有ドライブのファイル権限 (スライドを実行するアカウントに閲覧権限があるか) と URL/ファイル ID の指定ミスを確認する。
 - スライド生成中に処理が止まる場合は、Apps Script の実行ログを開き、どの `type` のスライドでエラーが出ているかを確認して `slideData` を修正する。
+- `clasp` の開発者サーバーやローカルプレビューで開くと HTML テンプレートが評価されないため UI だけが表示されます。実際に生成を行うには Apps Script の Web アプリとして実行してください。
 
 ## 開発フロー
 - 作業前に `clasp pull` で最新状態を取得。

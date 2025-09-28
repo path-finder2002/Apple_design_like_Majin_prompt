@@ -641,16 +641,38 @@
 
   
   <script>
-    var loadedSettings = {};
-    try {
-      loadedSettings = <?!= JSON.stringify(loadSettings()) ?> || {};
-    } catch (e) {
-      // Skip loading settings
+    let loadedSettings = {};
+    const clientLogPrefix = '[SlideGenerator]';
+
+    function logClient(level, message, payload) {
+      try {
+        const logger = console[level] ? console[level].bind(console) : console.log.bind(console);
+        if (typeof payload === 'undefined') {
+          logger(`${clientLogPrefix} ${message}`);
+        } else {
+          logger(`${clientLogPrefix} ${message}`, payload);
+        }
+      } catch (error) {
+        // Ignore logging failures
+      }
     }
+    try {
+      const settingsJson = '<?!= JSON.stringify(loadSettings()) ?>';
+      if (settingsJson && settingsJson !== 'undefined' && settingsJson.trim().startsWith('{')) {
+        loadedSettings = JSON.parse(settingsJson);
+        logClient('info', 'Loaded persisted settings', { keys: Object.keys(loadedSettings) });
+      }
+    } catch (e) {
+      console.warn('Failed to parse persisted settings; falling back to defaults.', e);
+      logClient('warn', 'Persisted settings parsing failed', e.message);
+    }
+
+    const isGasRuntimeAvailable = typeof google !== 'undefined' && google.script && google.script.run;
 
   function $(id){ return document.getElementById(id); }
 
   function showStatus(message, type, duration){
+    logClient(type === 'error' ? 'error' : 'info', `Status update (${type})`, message);
     var s = $("status");
     if(s){
       s.textContent = message;
@@ -677,7 +699,7 @@
   }
 
   function getCurrentSettings() {
-    return {
+    const current = {
       primaryColor: $("primaryColorText").value,
       fontFamily: $("fontFamily").value,
       footerText: $("footerText").value,
@@ -700,9 +722,12 @@
       hrMarginTop: $("hrMarginTop").value,
       hrColor: $("hrColorText").value
     };
+    logClient('debug', 'Current form settings captured', current);
+    return current;
   }
 
   function applyAllSettings(settings) {
+    logClient('info', 'Applying settings to form', { keys: Object.keys(settings || {}) });
     $("primaryColor").value = settings.primaryColor || "#4285F4";
     $("primaryColorText").value = settings.primaryColor || "#4285F4";
     $("fontFamily").value = settings.fontFamily || "Product Sans";
@@ -741,6 +766,8 @@
     var generateBtn = $("generateBtn");
     var slideDataString = $("slideDataInput").value;
 
+    logClient('info', 'Generate requested', { chars: slideDataString.length });
+
     if (!slideDataString.trim()) {
       showStatus('エラー: スライドデータが空です。', 'error', 5000);
       return;
@@ -750,6 +777,7 @@
     } catch(e) { 
       showStatus('エラー: JSON形式が正しくありません。
 ' + e.message, 'error', 5000);
+      logClient('error', 'JSON parse failed', e.message);
       return;
     }
     
@@ -772,6 +800,12 @@
       return;
     }
     settings.driveFolderId = extractedId;
+
+    if (!isGasRuntimeAvailable) {
+      showStatus('エラー: Google Apps Script の実行環境外ではスライドを生成できません。', 'error', 8000);
+      logClient('error', 'GAS runtime unavailable during generate');
+      return;
+    }
 
     generateBtn.disabled = true;
     showStatus('スライドを生成しています... 0秒', 'loading');
@@ -798,12 +832,14 @@
         statusDiv.appendChild(link);
         statusDiv.className = 'status-success';
         generateBtn.disabled = false;
+        logClient('info', 'Slide generation success', { elapsed, presentationUrl });
       })
       .withFailureHandler(function(error) {
         if (timerId) { clearInterval(timerId); timerId = null; }
         var elapsed = Math.round((Date.now() - startTime) / 1000);
         showStatus('❌ エラーが発生しました（' + elapsed + '秒）: ' + error.message, 'error');
         generateBtn.disabled = false;
+        logClient('error', 'Slide generation failed', { elapsed, error: error.message });
       })
       .generateSlidesFromWebApp(slideDataString, settings);
   }
@@ -942,6 +978,7 @@
 
   document.addEventListener('DOMContentLoaded', function() {
     loadSettingsToForm();
+    logClient('info', 'DOMContentLoaded initialised');
 
     $("generateBtn").addEventListener('click', generate);
 
@@ -951,7 +988,7 @@
     });
 
     ['hrWidth', 'hrHeight', 'hrMarginTop'].forEach(id => {
-        $(id).addEventListener('input', updateSeparatorStyles);
+      $(id).addEventListener('input', updateSeparatorStyles);
     });
 
     $("enableGradient").addEventListener('change', toggleGradientOptions);
@@ -980,6 +1017,13 @@
     updateGradientPreview();
     updatePresetSelect();
     updateSeparatorStyles();
+
+    if (!isGasRuntimeAvailable) {
+      const warningMessage = '注意: このページは Google Apps Script の Web アプリとして実行したときのみ動作します。開発者サーバーやローカルプレビューでは UI だけが表示されます。';
+      showStatus(warningMessage, 'error', 0);
+      $("generateBtn").disabled = true;
+      logClient('warn', 'Running without GAS runtime');
+    }
 
     document.querySelectorAll('.collapsible-header').forEach(header => {
       header.addEventListener('click', function() {
