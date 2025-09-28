@@ -37,6 +37,12 @@ function saveSettings(settings) {
     storableSettings.showBottomBar = String(storableSettings.showBottomBar);
     storableSettings.showDateColumn = String(storableSettings.showDateColumn); // 日付カラム設定を追加
     storableSettings.enableGradient = String(storableSettings.enableGradient);
+    // UIテーマ設定の永続化（存在する場合）
+    if (typeof storableSettings.currentTheme === 'string') {
+      storableSettings.currentTheme = String(storableSettings.currentTheme);
+    }
+    ['uiPrimaryColor','uiSecondaryColor','uiBackgroundColor','uiSurfaceColor','uiTextColor','uiFontFamily','displayFontFamily','bodyFontFamily']
+      .forEach(function(k){ if (typeof storableSettings[k] === 'undefined') delete storableSettings[k]; });
     PropertiesService.getUserProperties().setProperties(storableSettings, false);
     logDebug('saveSettings persisted', {
       storeSize: Object.keys(storableSettings).length
@@ -91,7 +97,17 @@ function loadSettings() {
     mainBgUrl: properties.mainBgUrl || '',
     closingBgUrl: properties.closingBgUrl || '',
     driveFolderUrl: properties.driveFolderUrl || '',
-    selectedPreset: properties.selectedPreset || 'default'
+    selectedPreset: properties.selectedPreset || 'default',
+    // UIテーマ情報
+    currentTheme: properties.currentTheme || (typeof getCurrentTheme === 'function' ? getCurrentTheme() : 'light'),
+    uiPrimaryColor: properties.uiPrimaryColor || (CONFIG && CONFIG.THEMES && CONFIG.THEMES.light ? CONFIG.THEMES.light.primary : '#6750A4'),
+    uiSecondaryColor: properties.uiSecondaryColor || (CONFIG && CONFIG.THEMES && CONFIG.THEMES.light ? CONFIG.THEMES.light.secondary : '#625B71'),
+    uiBackgroundColor: properties.uiBackgroundColor || (CONFIG && CONFIG.THEMES && CONFIG.THEMES.light ? CONFIG.THEMES.light.background : '#FDF8FF'),
+    uiSurfaceColor: properties.uiSurfaceColor || (CONFIG && CONFIG.THEMES && CONFIG.THEMES.light ? CONFIG.THEMES.light.surface : '#FEF7FF'),
+    uiTextColor: properties.uiTextColor || (CONFIG && CONFIG.THEMES && CONFIG.THEMES.light ? CONFIG.THEMES.light.text : '#1C1B1F'),
+    uiFontFamily: properties.uiFontFamily || (CONFIG && CONFIG.FONTS ? CONFIG.FONTS.ui_family : "Roboto, 'Noto Sans JP', Arial, sans-serif"),
+    displayFontFamily: properties.displayFontFamily || (CONFIG && CONFIG.FONTS ? CONFIG.FONTS.display_family : 'Product Sans'),
+    bodyFontFamily: properties.bodyFontFamily || (CONFIG && CONFIG.FONTS ? CONFIG.FONTS.body_family : 'Noto Sans JP')
   };
 }
 
@@ -102,16 +118,53 @@ function loadSettings() {
 /** settingsオブジェクトに基づき、CONFIG内の動的カラーを更新します */
 function updateDynamicColors(settings) {
   logDebug('updateDynamicColors invoked', {
-    primaryColor: settings.primaryColor
+    primaryColor: settings.primaryColor,
+    currentTheme: settings && settings.currentTheme
   });
   const primary = settings.primaryColor;
-  CONFIG.COLORS.background_gray = generateTintedGray(primary, 10, 98); 
-  CONFIG.COLORS.faint_gray = generateTintedGray(primary, 10, 93);
-  CONFIG.COLORS.ghost_gray = generateTintedGray(primary, 38, 88);
-  CONFIG.COLORS.table_header_bg = generateTintedGray(primary, 20, 94);
-  CONFIG.COLORS.lane_border = generateTintedGray(primary, 15, 85);
-  CONFIG.COLORS.card_border = generateTintedGray(primary, 15, 85);
-  CONFIG.COLORS.neutral_gray = generateTintedGray(primary, 5, 62);
+  const isDark = (settings && settings.currentTheme === 'dark');
+  // UIテーマの同期（存在すれば）
+  try {
+    if (settings.uiPrimaryColor) CONFIG.COLORS.ui_primary_color = settings.uiPrimaryColor;
+    if (settings.uiSecondaryColor) CONFIG.COLORS.ui_secondary_color = settings.uiSecondaryColor;
+    if (settings.uiBackgroundColor) CONFIG.COLORS.ui_background_color = settings.uiBackgroundColor;
+    if (settings.uiSurfaceColor) CONFIG.COLORS.ui_surface_color = settings.uiSurfaceColor;
+    if (settings.uiTextColor) CONFIG.COLORS.ui_text_color = settings.uiTextColor;
+    if (typeof setCurrentTheme === 'function' && settings.currentTheme) {
+      setCurrentTheme(settings.currentTheme);
+    }
+  } catch (e) {
+    logDebug('updateDynamicColors UI sync failed', { error: e.message });
+  }
+  // フォントの同期
+  try {
+    if (CONFIG && CONFIG.FONTS) {
+      if (settings.uiFontFamily) CONFIG.FONTS.ui_family = settings.uiFontFamily;
+      if (settings.displayFontFamily) CONFIG.FONTS.display_family = settings.displayFontFamily;
+      if (settings.bodyFontFamily) CONFIG.FONTS.body_family = settings.bodyFontFamily;
+      if (settings.fontFamily) CONFIG.FONTS.family = settings.fontFamily;
+    }
+  } catch (e) {}
+
+  // テーマに応じてティントグレーを調整
+  if (!primary) return;
+  if (isDark) {
+    CONFIG.COLORS.background_gray = generateTintedGray(primary, 12, 18);
+    CONFIG.COLORS.faint_gray = generateTintedGray(primary, 12, 22);
+    CONFIG.COLORS.ghost_gray = generateTintedGray(primary, 25, 28);
+    CONFIG.COLORS.table_header_bg = generateTintedGray(primary, 18, 20);
+    CONFIG.COLORS.lane_border = generateTintedGray(primary, 12, 35);
+    CONFIG.COLORS.card_border = generateTintedGray(primary, 12, 35);
+    CONFIG.COLORS.neutral_gray = generateTintedGray(primary, 6, 68);
+  } else {
+    CONFIG.COLORS.background_gray = generateTintedGray(primary, 10, 98); 
+    CONFIG.COLORS.faint_gray = generateTintedGray(primary, 10, 93);
+    CONFIG.COLORS.ghost_gray = generateTintedGray(primary, 38, 88);
+    CONFIG.COLORS.table_header_bg = generateTintedGray(primary, 20, 94);
+    CONFIG.COLORS.lane_border = generateTintedGray(primary, 15, 85);
+    CONFIG.COLORS.card_border = generateTintedGray(primary, 15, 85);
+    CONFIG.COLORS.neutral_gray = generateTintedGray(primary, 5, 62);
+  }
   CONFIG.COLORS.process_arrow = CONFIG.COLORS.ghost_gray;
 }
 
@@ -135,6 +188,42 @@ Stack: ${e.stack}`);
     logDebug('generateSlidesFromWebApp failed', { error: e.message });
     throw new Error(`Server error: ${e.message}`);
   }
+}
+
+/**
+ * 既存のプレゼンテーションのテーマを新しいテーマに合わせて更新
+ * UIから呼ばれるエントリーポイント
+ */
+function updateExistingSlides(settings) {
+  try {
+    logDebug('updateExistingSlides invoked', { theme: settings && settings.currentTheme });
+    if (settings && settings.currentTheme && typeof setCurrentTheme === 'function') {
+      setCurrentTheme(settings.currentTheme);
+    }
+    // 色とフォントを同期
+    updateDynamicColors(settings || {});
+    if (typeof refreshPresentationTheme === 'function') {
+      return refreshPresentationTheme(settings && settings.currentTheme ? settings.currentTheme : getCurrentTheme());
+    }
+    // darkMode.js が未ロードの場合のフォールバック
+    return { status: 'info', message: 'テーマ刷新モジュールが見つかりませんでした。' };
+  } catch (e) {
+    logDebug('updateExistingSlides failed', { error: e.message });
+    throw e;
+  }
+}
+
+/**
+ * 現在のテーマをトグルして適用
+ */
+function togglePresentationTheme() {
+  const props = PropertiesService.getUserProperties();
+  const current = (props.getProperty('currentTheme')) || (typeof getCurrentTheme === 'function' ? getCurrentTheme() : 'light');
+  const next = current === 'dark' ? 'light' : 'dark';
+  if (typeof setCurrentTheme === 'function') setCurrentTheme(next);
+  const result = (typeof refreshPresentationTheme === 'function') ? refreshPresentationTheme(next) : { status: 'info', message: 'テーマ刷新モジュールが見つかりませんでした。' };
+  props.setProperty('currentTheme', next);
+  return result;
 }
 function clearLegacyUserProperties() {
   try {

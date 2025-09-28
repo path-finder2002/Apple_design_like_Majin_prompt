@@ -940,6 +940,7 @@
 
           <div class="button-group" id="buttonGroup">
             <button id="generateBtn" type="button" class="btn">プレゼンテーションを生成</button>
+            <button id="refreshSlidesBtn" type="button" class="btn" style="background: var(--md-sys-color-secondary);">既存スライドのテーマを更新</button>
           </div>
           <div id="status"></div>
 
@@ -1106,6 +1107,20 @@
       hrMarginTop: $("hrMarginTop").value,
       hrColor: $("hrColorText").value
     };
+    // UIテーマ（CSS変数）とフォント設定の取り込み
+    try {
+      const theme = document.documentElement.getAttribute('data-theme') || 'light';
+      const styles = getComputedStyle(document.documentElement);
+      current.currentTheme = theme;
+      current.uiPrimaryColor = (styles.getPropertyValue('--md-sys-color-primary') || '').trim();
+      current.uiSecondaryColor = (styles.getPropertyValue('--md-sys-color-secondary') || '').trim();
+      current.uiBackgroundColor = (styles.getPropertyValue('--md-sys-color-background') || '').trim();
+      current.uiSurfaceColor = (styles.getPropertyValue('--md-sys-color-surface') || '').trim();
+      current.uiTextColor = (styles.getPropertyValue('--md-sys-color-on-background') || '').trim();
+      current.uiFontFamily = (styles.getPropertyValue('--font-family-sans') || '').trim();
+      current.displayFontFamily = 'Product Sans';
+      current.bodyFontFamily = $("fontFamily").value || 'Noto Sans JP';
+    } catch (e) { /* ignore */ }
     logClient('debug', 'Current form settings captured', current);
     return current;
   }
@@ -1142,6 +1157,23 @@
     toggleGradientOptions();
     updateGradientPreview();
     updateSeparatorStyles();
+    // UIテーマ設定の適用（任意値があればCSS変数へ反映）
+    try {
+      if (settings && (settings.currentTheme === 'light' || settings.currentTheme === 'dark')) {
+        applyTheme(settings.currentTheme);
+      }
+      const root = document.documentElement;
+      if (settings && settings.uiPrimaryColor) root.style.setProperty('--md-sys-color-primary', settings.uiPrimaryColor);
+      if (settings && settings.uiSecondaryColor) root.style.setProperty('--md-sys-color-secondary', settings.uiSecondaryColor);
+      if (settings && settings.uiBackgroundColor) root.style.setProperty('--md-sys-color-background', settings.uiBackgroundColor);
+      if (settings && settings.uiSurfaceColor) root.style.setProperty('--md-sys-color-surface', settings.uiSurfaceColor);
+      if (settings && settings.uiTextColor) root.style.setProperty('--md-sys-color-on-background', settings.uiTextColor);
+    } catch (e) { /* ignore */ }
+  }
+
+  // getAllSettings: フォーム値 + UIテーマ情報を統合
+  function getAllSettings() {
+    return getCurrentSettings();
   }
 
   function generate() {
@@ -1358,6 +1390,52 @@
     }
   }
 
+  // UIテーマ変更とスライド生成設定の同期
+  function syncThemeWithSlideGeneration() {
+    if (!isGasRuntimeAvailable) return;
+    const settings = getAllSettings();
+    try {
+      google.script.run
+        .withSuccessHandler(function(){ logClient('info', 'Synced theme to server'); })
+        .withFailureHandler(function(e){ logClient('warn', 'Sync failed', e && e.message); })
+        .saveSettings(settings);
+    } catch (e) { /* ignore */ }
+  }
+
+  // 既存スライドのテーマを更新
+  function refreshExistingSlides() {
+    if (!isGasRuntimeAvailable) return;
+    const settings = getAllSettings();
+    const startTime = Date.now();
+    let timerId = null;
+    showStatus('既存スライドのテーマを更新中... 0秒', 'loading');
+    timerId = setInterval(function(){
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const s = $('status');
+      if (s) {
+        s.textContent = 'テーマを更新中... ' + elapsed + '秒';
+        s.className = 'status-loading';
+      }
+    }, 1000);
+    try {
+      google.script.run
+        .withSuccessHandler(function(result){
+          if (timerId) { clearInterval(timerId); timerId = null; }
+          showStatus('🎉 既存スライドのテーマ更新が完了しました。', 'success', 4000);
+          logClient('info', 'updateExistingSlides success', result || {});
+        })
+        .withFailureHandler(function(error){
+          if (timerId) { clearInterval(timerId); timerId = null; }
+          showStatus('❌ テーマ更新中にエラー: ' + (error && error.message ? error.message : 'unknown'), 'error');
+          logClient('error', 'updateExistingSlides failure', error && error.message);
+        })
+        .updateExistingSlides(settings);
+    } catch (e) {
+      if (timerId) { clearInterval(timerId); timerId = null; }
+      showStatus('❌ テーマ更新の呼び出しに失敗しました: ' + e.message, 'error');
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
     // Initialize theme first
     initializeTheme();
@@ -1367,8 +1445,11 @@
 
     $("generateBtn").addEventListener('click', generate);
     
-    // Theme toggle event listener
-    $("themeToggle").addEventListener('click', toggleUITheme);
+    // Theme toggle event listener (sync settings)
+    $("themeToggle").addEventListener('click', function(){
+      toggleUITheme();
+      syncThemeWithSlideGeneration();
+    });
 
     ['primaryColor', 'gradientStart', 'gradientEnd', 'hrColor'].forEach(id => {
       $(id).addEventListener('input', function() { $(id + 'Text').value = this.value; if(id.includes('hr')) updateSeparatorStyles(); });
@@ -1405,6 +1486,24 @@
     updateGradientPreview();
     updatePresetSelect();
     updateSeparatorStyles();
+    
+    // 既存スライド更新ボタン
+    const refreshBtn = $("refreshSlidesBtn");
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', refreshExistingSlides);
+    }
+    
+    // 色・フォント変更時の自動同期
+    const fontEl = $("fontFamily");
+    if (fontEl) {
+      fontEl.addEventListener('change', syncThemeWithSlideGeneration);
+      fontEl.addEventListener('input', syncThemeWithSlideGeneration);
+    }
+    const primaryTextEl = $("primaryColorText");
+    if (primaryTextEl) {
+      primaryTextEl.addEventListener('change', syncThemeWithSlideGeneration);
+      primaryTextEl.addEventListener('input', syncThemeWithSlideGeneration);
+    }
 
     if (!isGasRuntimeAvailable) {
       const warningMessage = '注意: このページは Google Apps Script の Web アプリとして実行したときのみ動作します。開発者サーバーやローカルプレビューでは UI だけが表示されます。';

@@ -588,6 +588,10 @@ const CONFIG = {
   },
   FONTS: {
     family: 'Noto Sans JP',
+    // UI向けフォントと役割別のファミリー（後方互換を維持してfamilyを優先使用）
+    ui_family: "Roboto, 'Noto Sans JP', 'Helvetica Neue', Arial, sans-serif",
+    display_family: 'Product Sans',
+    body_family: 'Noto Sans JP',
     sizes: {
       title: 40,
       date: 16,
@@ -605,6 +609,7 @@ const CONFIG = {
     }
   },
   COLORS: {
+    // 既存互換
     primary_color: '#4285F4',
     text_primary: '#333333',
     background_white: '#FFFFFF',
@@ -618,7 +623,42 @@ const CONFIG = {
     neutral_gray: '',
     process_arrow: '',
     success_green: '#1e8e3e',
-    error_red: '#d93025'
+    error_red: '#d93025',
+    // UIテーマと同期するための拡張
+    ui_primary_color: '#6750A4',
+    ui_secondary_color: '#625B71',
+    ui_background_color: '#FDF8FF',
+    ui_surface_color: '#FEF7FF',
+    ui_text_color: '#1C1B1F'
+  },
+  // 現在のテーマ状態
+  CURRENT_THEME: 'light',
+  // Material Design 3 準拠のテーマ定義 + Googleブランドカラー
+  THEMES: {
+    light: {
+      primary: '#6750A4',
+      onPrimary: '#FFFFFF',
+      secondary: '#625B71',
+      onSecondary: '#FFFFFF',
+      background: '#FDF8FF',
+      surface: '#FEF7FF',
+      text: '#1C1B1F',
+      outline: '#79747E',
+      accent: '#03DAC5',
+      google: { blue: '#4285F4', red: '#DB4437', yellow: '#F4B400', green: '#0F9D58' }
+    },
+    dark: {
+      primary: '#D0BCFF',
+      onPrimary: '#381E72',
+      secondary: '#CCC2DC',
+      onSecondary: '#332D41',
+      background: '#101014',
+      surface: '#141218',
+      text: '#E6E0E9',
+      outline: '#938F99',
+      accent: '#66FFF9',
+      google: { blue: '#8AB4F8', red: '#F28B82', yellow: '#FDD663', green: '#81C995' }
+    }
   },
   DIAGRAM: {
     laneGap_px: 24,
@@ -636,3 +676,49 @@ const CONFIG = {
   },
   FOOTER_TEXT: `© ${new Date().getFullYear()} Your Company`
 };
+
+/**
+ * 現在のテーマを取得（'light' | 'dark'）
+ */
+function getCurrentTheme() {
+  try {
+    return CONFIG.CURRENT_THEME || 'light';
+  } catch (e) {
+    return 'light';
+  }
+}
+
+/**
+ * テーマを設定し、CONFIG.COLORSのUI連携プロパティを更新
+ * @param {('light'|'dark')} theme
+ */
+function setCurrentTheme(theme) {
+  const next = (theme === 'dark') ? 'dark' : 'light';
+  CONFIG.CURRENT_THEME = next;
+  syncUIThemeWithConfig();
+  return CONFIG.CURRENT_THEME;
+}
+
+/**
+ * CONFIG.THEMES と CONFIG.COLORS, CONFIG.FONTS を同期
+ * - UI用カラー（ui_*）をテーマから反映
+ * - 後方互換のため primary_color は維持（必要に応じて同期）
+ */
+function syncUIThemeWithConfig() {
+  const themeKey = getCurrentTheme();
+  const theme = (CONFIG.THEMES && CONFIG.THEMES[themeKey]) ? CONFIG.THEMES[themeKey] : CONFIG.THEMES.light;
+  // UI Colors
+  CONFIG.COLORS.ui_primary_color = theme.primary;
+  CONFIG.COLORS.ui_secondary_color = theme.secondary;
+  CONFIG.COLORS.ui_background_color = theme.background;
+  CONFIG.COLORS.ui_surface_color = theme.surface;
+  CONFIG.COLORS.ui_text_color = theme.text;
+  // 互換のため、primary_color が未定義/空なら同期
+  if (!CONFIG.COLORS.primary_color) {
+    CONFIG.COLORS.primary_color = theme.primary;
+  }
+  return {
+    theme: themeKey,
+    colors: CONFIG.COLORS
+  };
+}
