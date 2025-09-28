@@ -212,3 +212,4 @@ function adjustColorBrightness(hex, factor) {
   g = Math.min(255, Math.round(g * factor));
   b = Math.min(255, Math.round(b * factor));
   return '#' + (0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}

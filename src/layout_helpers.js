@@ -131,3 +131,4 @@ function findContentRect(layout, key) {
     if (r && r.top != null) return r;
   }
   return null;
+}

@@ -888,7 +888,7 @@ function createStepUpSlide(slide, data, layout, pageNum, settings) {
       headerTextShape.setAutofit(SlidesApp.AutofitType.SHRINK_ON_OVERFLOW);
     } catch (e) {}
     
-    // ボディテキスト
+    //ボディテキスト
     const bodyTextShape = slide.insertShape(SlidesApp.ShapeType.TEXT_BOX, 
       left + layout.pxToPt(8), top + headerHeight, 
       cardW - layout.pxToPt(16), cardH - headerHeight);

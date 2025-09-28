@@ -173,3 +173,4 @@ function applyFill(slide, x, y, width, height, settings) {
     const shape = slide.insertShape(SlidesApp.ShapeType.RECTANGLE, x, y, width, height);
     shape.getFill().setSolidFill(settings.primaryColor);
     shape.getBorder().setTransparent();
+  }

@@ -7,7 +7,7 @@ function estimateTextWidthPt(text, fontSizePt) {
   return String(text || '').split('').reduce((acc, char) => {
     if (char.match(/[ -~]/)) {
       return acc + multipliers.ascii;
-    } else if (char.match(/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/)) {
+    } else if (char.match(/[぀-ゟ゠-ヿ一-龯]/)) {
       return acc + multipliers.japanese;
     } else {
       return acc + multipliers.other;
@@ -96,7 +96,7 @@ function estimateTextHeightPt(text, widthPt, fontSizePt, lineHeight) {
  * @param {SlidesApp.Slide} slide
  * @param {{x:number,y:number,width:number}} frame   // コンテンツ基準枠（pt）
  * @param {string} subheadText
- * @param {{
+ * @param {{ 
  *   fontFamily?: string,
  *   fontSizePt?: number,     // 例: 18
  *   lineHeight?: number,     // 例: 1.25 （ParagraphStyle.setLineSpacing に %換算で反映）
@@ -242,4 +242,3 @@ function drawNumberedItems(slide, layout, area, items, settings) {
 // ========================================
 // 9. ヘルパー関数群
 // ========================================
-
