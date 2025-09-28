@@ -5,18 +5,24 @@
   JSONデータからGoogleスライドを自動生成するWebアプリケーション
   
   @author まじん
-  @version 3.1.0
+  @version 3.4.0
   @license CC BY-NC 4.0
   @see https://creativecommons.org/licenses/by-nc/4.0/
 -->
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Google Slide Generator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Majin Slide Generator</title>
   <base target="_top">
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <style>
+    @font-face {
+      font-family: 'Product Sans';
+      src: url('fonts/ProductSans-Regular.woff2') format('woff2');
+      font-weight: normal;
+      font-style: normal;
+    }
     :root {
       --google-blue: #4285F4;
       --google-red: #DB4437;
@@ -27,7 +33,13 @@
       --border-color: #dadce0;
       --background-color: #f8f9fa;
       --surface-color: #ffffff;
-      --font-family: 'Roboto', sans-serif;
+      --font-family: 'Product Sans', 'Roboto', sans-serif;
+
+      /* HR Separator Variables */
+      --hr-width: 80px;
+      --hr-height: 4px;
+      --hr-color: #4285F4;
+      --hr-margin-top: 16px;
     }
     body { 
       font-family: var(--font-family);
@@ -43,13 +55,35 @@
       padding: 24px; 
     }
     h1 { 
-      color: var(--primary-text); 
-      font-size: 28px; 
+      font-size: 36px;
       font-weight: 500;
       text-align: center;
-      margin-bottom: 32px;
+      margin-bottom: 0;
+      line-height: 1.2;
     }
-    h2 { 
+    .g-word {
+      color: var(--secondary-text);
+    }
+    .g-letter {
+      font-size: 56px;
+    }
+    .g-blue { color: var(--google-blue); }
+    .g-red { color: var(--google-red); }
+    .g-yellow { color: var(--google-yellow); }
+    .g-green { color: var(--google-green); }
+
+    .title-separator {
+      width: var(--hr-width);
+      height: var(--hr-height);
+      background-color: var(--hr-color);
+      margin-top: var(--hr-margin-top);
+      margin-left: auto;
+      margin-right: auto;
+      margin-bottom: 32px;
+      border: none;
+      border-radius: 2px;
+    }
+    h2 {
       font-size: 18px; 
       font-weight: 500;
       margin: 0; 
@@ -123,7 +157,7 @@
       accent-color: var(--google-blue);
     }
     .settings-grid input[type="text"],
-    .settings-grid select {
+    .settings-grid select { 
       width: 100%; 
       padding: 10px 12px; 
       border: 1px solid var(--border-color); 
@@ -168,7 +202,7 @@
       font-weight: 500; 
       color: white; 
       border: none; 
-      border-radius: 4px; 
+      border-radius: 8px; 
       cursor: pointer; 
       transition: all 0.2s ease;
       text-transform: none;
@@ -264,6 +298,7 @@
       border: 1px solid var(--border-color);
       padding: 8px 16px;
       font-weight: 500;
+      border-radius: 8px;
     }
     .btn-secondary:hover {
       background: rgba(66, 133, 244, 0.04);
@@ -363,11 +398,48 @@
       font-size: 12px;
       font-weight: 400;
     }
+
+    /* Responsive Design */
+    @media (max-width: 992px) {
+      .container {
+        padding: 16px;
+      }
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+      h1 {
+        font-size: 30px;
+      }
+      .g-letter {
+        font-size: 48px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 24px;
+      }
+      .g-letter {
+        font-size: 36px;
+      }
+      .settings-grid {
+        grid-template-columns: 1fr;
+      }
+      .card-content {
+        padding: 16px;
+      }
+      .preset-control-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+      }
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Google Slide Generator</h1>
+    <h1><span class="g-letter g-blue">G</span><span class="g-word">oogle</span> <span class="g-letter g-red">M</span><span class="g-word">ajin</span> <span class="g-letter g-yellow">S</span><span class="g-word">lide</span> <span class="g-letter g-green">G</span><span class="g-word">enerator</span></h1>
+    <hr class="title-separator">
     <div class="main-grid">
       <div class="card">
         <h2>1. スライドデータを入力</h2>
@@ -409,8 +481,9 @@
              <div>
               <label for="fontFamily">フォント</label>
               <select id="fontFamily">
+                <option value="Product Sans" selected>Product Sans</option>
                 <option value="Roboto">Roboto</option>
-                <option value="Noto Sans JP" selected>Noto Sans JP</option>
+                <option value="Noto Sans JP">Noto Sans JP</option>
                 <option value="Arial">Arial</option>
                 <option value="M PLUS 1p">M PLUS 1p</option>
                 <option value="Noto Serif JP">Noto Serif JP</option>
@@ -435,6 +508,27 @@
               <span class="collapsible-icon material-icons">expand_more</span>
             </div>
             <div class="collapsible-content">
+              <div class="settings-grid" style="border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 16px;">
+                <div>
+                  <label for="hrWidth">区切り線の幅 (px or %)</label>
+                  <input type="text" id="hrWidth" value="80px">
+                </div>
+                <div>
+                  <label for="hrHeight">区切り線の太さ (px)</label>
+                  <input type="text" id="hrHeight" value="4px">
+                </div>
+                <div>
+                  <label for="hrMarginTop">タイトルとの距離 (px)</label>
+                  <input type="text" id="hrMarginTop" value="16px">
+                </div>
+                <div>
+                  <label for="hrColor">区切り線の色</label>
+                  <div class="color-picker-wrapper">
+                    <input type="color" id="hrColor" value="#4285F4">
+                    <input type="text" id="hrColorText" value="#4285F4">
+                  </div>
+                </div>
+              </div>
                <div class="checkbox-wrapper">
                 <input type="checkbox" id="showTitleUnderline" checked>
                 <label for="showTitleUnderline">タイトル下にアンダーラインを表示</label>
@@ -561,6 +655,7 @@
     if(s){
       s.textContent = message;
       s.className = 'status-' + type;
+      s.style.display = 'block';
       if (duration > 0) {
         setTimeout(function() {
           if (s.textContent === message) {
@@ -573,25 +668,71 @@
     }
   }
 
+  function updateSeparatorStyles() {
+    const root = document.documentElement;
+    root.style.setProperty('--hr-width', $("hrWidth").value);
+    root.style.setProperty('--hr-height', $("hrHeight").value);
+    root.style.setProperty('--hr-margin-top', $("hrMarginTop").value);
+    root.style.setProperty('--hr-color', $("hrColorText").value);
+  }
+
   function getCurrentSettings() {
     return {
       primaryColor: $("primaryColorText").value,
       fontFamily: $("fontFamily").value,
+      footerText: $("footerText").value,
+      driveFolderUrl: $("driveFolderUrl").value,
       showTitleUnderline: $("showTitleUnderline").checked,
       showBottomBar: $("showBottomBar").checked,
       showDateColumn: $("showDateColumn").checked,
       enableGradient: $("enableGradient").checked,
       gradientStart: $("gradientStartText").value,
       gradientEnd: $("gradientEndText").value,
-      footerText: $("footerText").value.trim(),
-      headerLogoUrl: $("headerLogoUrl").value.trim(),
-      closingLogoUrl: $("closingLogoUrl").value.trim(),
-      titleBgUrl: $("titleBgUrl").value.trim(),
-      sectionBgUrl: $("sectionBgUrl").value.trim(),
-      mainBgUrl: $("mainBgUrl").value.trim(),
-      closingBgUrl: $("closingBgUrl").value.trim(),
-      driveFolderUrl: $("driveFolderUrl").value.trim()
+      headerLogoUrl: $("headerLogoUrl").value,
+      closingLogoUrl: $("closingLogoUrl").value,
+      titleBgUrl: $("titleBgUrl").value,
+      sectionBgUrl: $("sectionBgUrl").value,
+      mainBgUrl: $("mainBgUrl").value,
+      closingBgUrl: $("closingBgUrl").value,
+      // Separator settings
+      hrWidth: $("hrWidth").value,
+      hrHeight: $("hrHeight").value,
+      hrMarginTop: $("hrMarginTop").value,
+      hrColor: $("hrColorText").value
     };
+  }
+
+  function applyAllSettings(settings) {
+    $("primaryColor").value = settings.primaryColor || "#4285F4";
+    $("primaryColorText").value = settings.primaryColor || "#4285F4";
+    $("fontFamily").value = settings.fontFamily || "Product Sans";
+    $("footerText").value = settings.footerText || "";
+    $("driveFolderUrl").value = settings.driveFolderUrl || "";
+    $("showTitleUnderline").checked = settings.showTitleUnderline !== false;
+    $("showBottomBar").checked = settings.showBottomBar !== false;
+    $("showDateColumn").checked = settings.showDateColumn !== false;
+    $("enableGradient").checked = settings.enableGradient || false;
+    $("gradientStart").value = settings.gradientStart || "#4285F4";
+    $("gradientStartText").value = settings.gradientStart || "#4285F4";
+    $("gradientEnd").value = settings.gradientEnd || "#34A853";
+    $("gradientEndText").value = settings.gradientEnd || "#34A853";
+    $("headerLogoUrl").value = settings.headerLogoUrl || "";
+    $("closingLogoUrl").value = settings.closingLogoUrl || "";
+    $("titleBgUrl").value = settings.titleBgUrl || "";
+    $("sectionBgUrl").value = settings.sectionBgUrl || "";
+    $("mainBgUrl").value = settings.mainBgUrl || "";
+    $("closingBgUrl").value = settings.closingBgUrl || "";
+
+    // Separator settings
+    $("hrWidth").value = settings.hrWidth || "80px";
+    $("hrHeight").value = settings.hrHeight || "4px";
+    $("hrMarginTop").value = settings.hrMarginTop || "16px";
+    $("hrColor").value = settings.hrColor || "#4285F4";
+    $("hrColorText").value = settings.hrColor || "#4285F4";
+    
+    toggleGradientOptions();
+    updateGradientPreview();
+    updateSeparatorStyles();
   }
 
   function generate() {
@@ -601,13 +742,14 @@
     var slideDataString = $("slideDataInput").value;
 
     if (!slideDataString.trim()) {
-      showStatus('エラー: スライドデータが空です。', 'error');
+      showStatus('エラー: スライドデータが空です。', 'error', 5000);
       return;
     }
     try { 
       JSON.parse(slideDataString); 
-    } catch(e) {
-      showStatus('エラー: JSON形式が正しくありません。\n' + e.message, 'error');
+    } catch(e) { 
+      showStatus('エラー: JSON形式が正しくありません。
+' + e.message, 'error', 5000);
       return;
     }
     
@@ -626,7 +768,7 @@
     var extractedId = extractFolderIdFromUrl(settings.driveFolderUrl);
 
     if (settings.driveFolderUrl && !extractedId) {
-      showStatus('エラー: 正しいGoogleドライブフォルダURLまたはIDを入力してください。', 'error');
+      showStatus('エラー: 正しいGoogleドライブフォルダURLまたはIDを入力してください。', 'error', 5000);
       return;
     }
     settings.driveFolderId = extractedId;
@@ -677,75 +819,8 @@
 
   function loadSettingsToForm() {
     if (loadedSettings && typeof loadedSettings === 'object') {
-      $("primaryColor").value = loadedSettings.primaryColor || '#4285F4';
-      $("primaryColorText").value = loadedSettings.primaryColor || '#4285F4';
-      $("fontFamily").value = loadedSettings.fontFamily || 'Noto Sans JP';
-      $("footerText").value = loadedSettings.footerText || '';
-      $("driveFolderUrl").value = loadedSettings.driveFolderUrl || '';
-      $("showTitleUnderline").checked = loadedSettings.showTitleUnderline !== false;
-      $("showBottomBar").checked = loadedSettings.showBottomBar !== false;
-      $("showDateColumn").checked = loadedSettings.showDateColumn !== false;
-      $("enableGradient").checked = loadedSettings.enableGradient || false;
-      $("gradientStart").value = loadedSettings.gradientStart || '#4285F4';
-      $("gradientStartText").value = loadedSettings.gradientStart || '#4285F4';
-      $("gradientEnd").value = loadedSettings.gradientEnd || '#34A853';
-      $("gradientEndText").value = loadedSettings.gradientEnd || '#34A853';
-      $("headerLogoUrl").value = loadedSettings.headerLogoUrl || '';
-      $("closingLogoUrl").value = loadedSettings.closingLogoUrl || '';
-      $("titleBgUrl").value = loadedSettings.titleBgUrl || '';
-      $("sectionBgUrl").value = loadedSettings.sectionBgUrl || '';
-      $("mainBgUrl").value = loadedSettings.mainBgUrl || '';
-      $("closingBgUrl").value = loadedSettings.closingBgUrl || '';
-      
-      toggleGradientOptions();
-      updateGradientPreview();
+      applyAllSettings(loadedSettings);
     }
-  }
-
-  function getAllSettings() {
-    return {
-      primaryColor: $("primaryColorText").value,
-      fontFamily: $("fontFamily").value,
-      footerText: $("footerText").value,
-      driveFolderUrl: $("driveFolderUrl").value,
-      showTitleUnderline: $("showTitleUnderline").checked,
-      showBottomBar: $("showBottomBar").checked,
-      showDateColumn: $("showDateColumn").checked,
-      enableGradient: $("enableGradient").checked,
-      gradientStart: $("gradientStartText").value,
-      gradientEnd: $("gradientEndText").value,
-      headerLogoUrl: $("headerLogoUrl").value,
-      closingLogoUrl: $("closingLogoUrl").value,
-      titleBgUrl: $("titleBgUrl").value,
-      sectionBgUrl: $("sectionBgUrl").value,
-      mainBgUrl: $("mainBgUrl").value,
-      closingBgUrl: $("closingBgUrl").value
-    };
-  }
-
-  function applyAllSettings(settings) {
-    $("primaryColor").value = settings.primaryColor || '#4285F4';
-    $("primaryColorText").value = settings.primaryColor || '#4285F4';
-    $("fontFamily").value = settings.fontFamily || 'Noto Sans JP';
-    $("footerText").value = settings.footerText || '';
-    $("driveFolderUrl").value = settings.driveFolderUrl || '';
-    $("showTitleUnderline").checked = settings.showTitleUnderline !== false;
-    $("showBottomBar").checked = settings.showBottomBar !== false;
-    $("showDateColumn").checked = settings.showDateColumn !== false;
-    $("enableGradient").checked = settings.enableGradient || false;
-    $("gradientStart").value = settings.gradientStart || '#4285F4';
-    $("gradientStartText").value = settings.gradientStart || '#4285F4';
-    $("gradientEnd").value = settings.gradientEnd || '#34A853';
-    $("gradientEndText").value = settings.gradientEnd || '#34A853';
-    $("headerLogoUrl").value = settings.headerLogoUrl || '';
-    $("closingLogoUrl").value = settings.closingLogoUrl || '';
-    $("titleBgUrl").value = settings.titleBgUrl || '';
-    $("sectionBgUrl").value = settings.sectionBgUrl || '';
-    $("mainBgUrl").value = settings.mainBgUrl || '';
-    $("closingBgUrl").value = settings.closingBgUrl || '';
-    
-    toggleGradientOptions();
-    updateGradientPreview();
   }
 
   function loadUserPresets() {
@@ -870,9 +945,13 @@
 
     $("generateBtn").addEventListener('click', generate);
 
-    ['primaryColor', 'gradientStart', 'gradientEnd'].forEach(id => {
-      $(id).addEventListener('input', function() { $(id + 'Text').value = this.value; if(id !== 'primaryColor') updateGradientPreview(); });
-      $(id + 'Text').addEventListener('input', function() { $(id).value = this.value; if(id !== 'primaryColor') updateGradientPreview(); });
+    ['primaryColor', 'gradientStart', 'gradientEnd', 'hrColor'].forEach(id => {
+      $(id).addEventListener('input', function() { $(id + 'Text').value = this.value; if(id.includes('hr')) updateSeparatorStyles(); });
+      $(id + 'Text').addEventListener('input', function() { $(id).value = this.value; if(id.includes('hr')) updateSeparatorStyles(); });
+    });
+
+    ['hrWidth', 'hrHeight', 'hrMarginTop'].forEach(id => {
+        $(id).addEventListener('input', updateSeparatorStyles);
     });
 
     $("enableGradient").addEventListener('change', toggleGradientOptions);
@@ -900,6 +979,7 @@
     validateJSON();
     updateGradientPreview();
     updatePresetSelect();
+    updateSeparatorStyles();
 
     document.querySelectorAll('.collapsible-header').forEach(header => {
       header.addEventListener('click', function() {

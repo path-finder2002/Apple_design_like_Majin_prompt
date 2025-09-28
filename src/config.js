@@ -616,7 +616,9 @@ const CONFIG = {
     lane_border: '',
     card_border: '',
     neutral_gray: '',
-    process_arrow: ''
+    process_arrow: '',
+    success_green: '#1e8e3e',
+    error_red: '#d93025'
   },
   DIAGRAM: {
     laneGap_px: 24,

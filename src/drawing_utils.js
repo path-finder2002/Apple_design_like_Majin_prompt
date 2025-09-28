@@ -155,6 +155,10 @@ function addCucFooter(slide, layout, pageNum) {
 function drawBottomBarAndFooter(slide, layout, pageNum, settings) {
   if (settings.showBottomBar) {
     drawBottomBar(slide, layout, settings);
+  }
+  addCucFooter(slide, layout, pageNum);
+}
+
 function drawCompareBox(slide, layout, rect, title, items, settings, isLeft = false) {
   const box = slide.insertShape(SlidesApp.ShapeType.RECTANGLE, rect.left, rect.top, rect.width, rect.height);
   box.getFill().setSolidFill(CONFIG.COLORS.background_gray);
@@ -239,8 +243,3 @@ function drawNumberedItems(slide, layout, area, items, settings) {
 // 9. ヘルパー関数群
 // ========================================
 
-/**
- * 安全にレイアウト矩形を取得するヘルパー関数
- * @param {Object} layout - レイアウトマネージャー
- * @param {string} path - レイアウトパス
- * @return {Object|null} レイアウト矩形またはnull

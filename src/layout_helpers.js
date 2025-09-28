@@ -112,6 +112,7 @@ function safeGetRect(layout, path) {
     }
     return null;
   }
+}
 function findContentRect(layout, key) {
   const candidates = [
     'body',        // contentSlide 等
