@@ -5,7 +5,7 @@
   JSONデータからGoogleスライドを自動生成するWebアプリケーション
   
   @author まじん
-  @version 3.0.0
+  @version 3.1.0
   @license CC BY-NC 4.0
   @see https://creativecommons.org/licenses/by-nc/4.0/
 -->
@@ -14,85 +14,95 @@
   <meta charset="utf-8">
   <title>Google Slide Generator</title>
   <base target="_top">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <style>
+    :root {
+      --google-blue: #4285F4;
+      --google-red: #DB4437;
+      --google-yellow: #F4B400;
+      --google-green: #0F9D58;
+      --primary-text: #202124;
+      --secondary-text: #5f6368;
+      --border-color: #dadce0;
+      --background-color: #f8f9fa;
+      --surface-color: #ffffff;
+      --font-family: 'Roboto', sans-serif;
+    }
     body { 
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
-      margin: 0; padding: 0; 
-      background: #ffffff;
+      font-family: var(--font-family);
+      margin: 0; 
+      padding: 0; 
+      background: var(--background-color);
       min-height: 100vh;
-      color: #333; 
+      color: var(--primary-text); 
     }
     .container { 
       max-width: 1400px; 
       margin: 0 auto; 
-      padding: 30px 20px; 
+      padding: 24px; 
     }
     h1 { 
-      color: #ffba00; 
-      font-size: 36px; 
-      font-weight: 700;
+      color: var(--primary-text); 
+      font-size: 28px; 
+      font-weight: 500;
       text-align: center;
-      margin-bottom: 40px;
-      text-shadow: 0 2px 4px rgba(255, 186, 0, 0.3);
+      margin-bottom: 32px;
     }
     h2 { 
-      font-size: 20px; 
+      font-size: 18px; 
+      font-weight: 500;
       margin: 0; 
-      padding: 15px 20px;
-      background: linear-gradient(135deg, #ffba00, #f46524);
-      color: white;
+      padding: 16px 24px;
+      background: var(--surface-color);
+      color: var(--primary-text);
+      border-bottom: 1px solid var(--border-color);
       border-radius: 8px 8px 0 0;
-      font-weight: 600;
     }
     .main-grid { 
       display: grid; 
       grid-template-columns: 1.5fr 1fr; 
-      gap: 30px; 
+      gap: 24px; 
     }
-    .editor-section, .settings-section { 
-      background: white; 
-      border-radius: 12px; 
-      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-      border: 1px solid #e7edf8;
+    .card { 
+      background: var(--surface-color); 
+      border-radius: 8px; 
+      border: 1px solid var(--border-color);
       overflow: hidden;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      transition: box-shadow 0.2s ease;
     }
-    .editor-section:hover, .settings-section:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(0,0,0,0.12);
-      border-color: #c2e7ff;
+    .card:hover {
+      box-shadow: 0 1px 3px 1px rgba(60,64,67,0.15);
     }
-    .editor-section { padding: 0; }
-    .settings-section { padding: 0; }
-    .editor-content, .settings-content { padding: 20px 25px 25px 25px; }
+    .card-content { padding: 24px; }
     #slideDataInput { 
       width: 100%; 
       height: 500px; 
       font-family: 'Fira Code', 'Consolas', monospace; 
       font-size: 14px; 
-      border: 2px solid #e2e7ea; 
-      border-radius: 8px; 
-      padding: 15px; 
+      border: 1px solid var(--border-color); 
+      border-radius: 4px; 
+      padding: 12px; 
       box-sizing: border-box;
-      background: #f8f9fa;
+      background: #fff;
       transition: border-color 0.2s ease, box-shadow 0.2s ease;
       resize: vertical;
     }
     #slideDataInput:focus {
       outline: none;
-      border-color: #ffba00;
-      box-shadow: 0 0 0 3px rgba(255, 186, 0, 0.1);
+      border-color: var(--google-blue);
+      box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
     }
     .settings-grid { 
       display: grid; 
       grid-template-columns: 1fr 1fr; 
-      gap: 20px; 
+      gap: 16px; 
       align-items: center;
     }
     .settings-grid label { 
-      font-weight: 600; 
+      font-weight: 500; 
       font-size: 14px; 
-      color: #1a73e8;
+      color: var(--secondary-text);
       margin-bottom: 8px; 
       display: block;
     }
@@ -100,143 +110,142 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 5px 0;
+      padding: 8px 0;
     }
     .checkbox-wrapper label {
       margin-bottom: 0;
-      color: #333;
-      font-weight: normal;
+      color: var(--primary-text);
+      font-weight: 400;
     }
     input[type="checkbox"] {
       width: 18px;
       height: 18px;
+      accent-color: var(--google-blue);
     }
-    .settings-grid input[type="text"], 
-    .settings-grid select, 
-    .settings-grid input[type="color"] { 
+    .settings-grid input[type="text"],
+    .settings-grid select {
       width: 100%; 
-      padding: 12px 16px; 
-      border: 2px solid #e2e7ea; 
-      border-radius: 8px; 
+      padding: 10px 12px; 
+      border: 1px solid var(--border-color); 
+      border-radius: 4px; 
       box-sizing: border-box;
       font-size: 14px;
       transition: all 0.2s ease;
-      background: #f8f9fa;
+      background: #fff;
     }
     .settings-grid input[type="text"]:focus,
     .settings-grid select:focus {
       outline: none;
-      border-color: #ffba00;
-      box-shadow: 0 0 0 3px rgba(255, 186, 0, 0.1);
+      border-color: var(--google-blue);
+      box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
     }
     .color-picker-wrapper { 
       display: flex; 
       align-items: center; 
-      gap: 12px; 
+      gap: 8px; 
     }
     .color-picker-wrapper input[type="color"] { 
       padding: 0; 
-      height: 44px; 
-      width: 60px; 
-      border: 2px solid #e2e7ea; 
-      border-radius: 8px;
+      height: 40px; 
+      width: 40px; 
+      border: 1px solid var(--border-color); 
+      border-radius: 4px;
       cursor: pointer;
-      transition: border-color 0.2s ease;
-    }
-    .color-picker-wrapper input[type="color"]:hover {
-      border-color: #ffba00;
     }
     .button-group {
-      margin-top: 25px;
+      margin-top: 24px;
       display: grid;
       grid-template-columns: 1fr;
-      gap: 15px;
+      gap: 12px;
     }
     .btn {
-      display: block; 
+      display: inline-flex; 
+      align-items: center;
+      justify-content: center;
       width: 100%; 
-      padding: 18px; 
-      font-size: 16px; 
-      font-weight: 700; 
+      padding: 10px 24px; 
+      font-size: 14px; 
+      font-weight: 500; 
       color: white; 
       border: none; 
-      border-radius: 10px; 
+      border-radius: 4px; 
       cursor: pointer; 
-      transition: all 0.3s ease;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      transition: all 0.2s ease;
+      text-transform: none;
+      letter-spacing: 0.25px;
     }
     .btn:disabled { 
-      background: #9e9e9e; 
+      background-color: #e0e0e0;
+      color: #9e9e9e;
       cursor: not-allowed; 
       box-shadow: none;
-      transform: none;
     }
     .btn:hover:not(:disabled) { 
-      transform: translateY(-2px);
+      box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
     }
     #generateBtn {
-      background: linear-gradient(135deg, #ffba00, #f46524);
-      box-shadow: 0 4px 15px rgba(255, 186, 0, 0.3);
+      background-color: var(--google-blue);
     }
     #status { 
-      margin-top: 25px; 
-      padding: 20px; 
-      border-radius: 10px; 
+      margin-top: 24px; 
+      padding: 16px; 
+      border-radius: 4px; 
       text-align: center; 
-      font-weight: 600; 
+      font-weight: 500; 
       word-wrap: break-word;
-      font-size: 16px;
+      font-size: 14px;
+      display: none;
     }
     .status-loading { 
-      background: linear-gradient(135deg, #e3f2fd, #bbdefb); 
-      color: #1565c0; 
-      border: 2px solid #2196f3;
+      background: #e8f0fe; 
+      color: #174ea6; 
+      display: block;
     }
     .status-success { 
-      background: linear-gradient(135deg, #e8f5e9, #c8e6c9); 
-      color: #2e7d32; 
-      border: 2px solid #4caf50;
+      background: #e6f4ea; 
+      color: #137333; 
+      display: block;
     }
     .status-error { 
-      background: linear-gradient(135deg, #ffebee, #ffcdd2); 
-      color: #c62828; 
-      border: 2px solid #f44336;
+      background: #fce8e6; 
+      color: #a50e0e; 
+      display: block;
     }
     .collapsible-section {
-      margin: 20px 0;
+      margin: 16px 0;
       grid-column: 1 / -1;
+      border-top: 1px solid var(--border-color);
+      padding-top: 16px;
     }
     .collapsible-header {
-      background: linear-gradient(135deg, #c2e7ff, #d3e3fd);
-      color: #1a73e8;
-      padding: 12px 20px;
-      border-radius: 8px;
+      background: transparent;
+      color: var(--primary-text);
+      padding: 8px 0;
+      border-radius: 0;
       cursor: pointer;
-      font-weight: 600;
+      font-weight: 500;
       font-size: 16px;
-      border: 1px solid #e2e7ea;
       transition: all 0.2s ease;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
     .collapsible-header:hover {
-      background: linear-gradient(135deg, #b3d9ff, #c8d9fd);
+      background: rgba(60,64,67,0.04);
     }
     .collapsible-content {
       display: none;
-      padding: 20px;
-      background: #f8f9fa;
-      border: 1px solid #e2e7ea;
+      padding: 16px 0 0 0;
+      background: transparent;
       border-top: none;
-      border-radius: 0 0 8px 8px;
     }
     .collapsible-content.active {
       display: block;
     }
     .collapsible-icon {
       transition: transform 0.2s ease;
+      font-family: 'Material Icons';
+      font-size: 24px;
     }
     .collapsible-header.active .collapsible-icon {
       transform: rotate(180deg);
@@ -249,211 +258,110 @@
     .url-input-wrapper input {
       flex: 1;
     }
-    .preview-btn {
-      padding: 8px;
-      background: #ffba00;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 20px;
-      transition: all 0.2s ease;
-      width: 44px;
-      height: 44px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      line-height: 1;
+    .btn-secondary {
+      background: transparent;
+      color: var(--google-blue);
+      border: 1px solid var(--border-color);
+      padding: 8px 16px;
+      font-weight: 500;
     }
-    .preview-btn:hover {
-      background: #f46524;
-      transform: translateY(-1px);
-    }
-    .note-warning {
-      display: none;
-      margin-top: 10px;
-      padding: 10px 12px;
-      background: #fff8e1;
-      border: 1px solid #ffecb3;
-      color: #8a6d3b;
-      border-radius: 8px;
-      font-size: 13px;
-      line-height: 1.5;
+    .btn-secondary:hover {
+      background: rgba(66, 133, 244, 0.04);
+      border-color: #d2e3fc;
     }
     .note-info {
-      margin-bottom: 15px;
-      padding: 10px 12px;
-      background: #e3f2fd;
-      border: 1px solid #bbdefb;
-      color: #1565c0;
-      border-radius: 8px;
+      margin-bottom: 16px;
+      padding: 12px;
+      background: #e8f0fe;
+      border: 1px solid #d2e3fc;
+      color: #174ea6;
+      border-radius: 4px;
       font-size: 13px;
       line-height: 1.5;
-      font-style: normal;
     }
     #gradient-options {
       display: none; /* Initially hidden */
-      border-top: 1px solid #e2e7ea;
-      margin-top: 20px;
-      padding-top: 20px;
+      border-top: 1px solid var(--border-color);
+      margin-top: 16px;
+      padding-top: 16px;
     }
     .preset-management {
-      margin-bottom: 25px;
-      padding: 20px;
-      background: #f8f9fa;
+      margin-bottom: 24px;
+      padding: 16px;
+      background: var(--background-color);
       border-radius: 8px;
-      border: 1px solid #e2e7ea;
     }
     .preset-controls label {
       display: block;
-      font-weight: 600;
-      margin-bottom: 10px;
-      color: #333;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: var(--secondary-text);
     }
     .preset-control-row {
       display: flex;
-      gap: 10px;
+      gap: 8px;
       align-items: center;
     }
     .preset-select {
       flex: 1;
-      padding: 8px 12px;
-      border: 1px solid #dee2e6;
-      border-radius: 6px;
-      font-size: 14px;
-      background: white;
     }
     .btn-preset {
-      padding: 8px 16px;
-      background: #1a73e8;
+      background-color: var(--google-blue);
       color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 600;
-      transition: all 0.2s ease;
-    }
-    .btn-preset:hover {
-      background: #1557b0;
-      transform: translateY(-1px);
-    }
-    .btn-preset:disabled {
-      background: #6c757d;
-      cursor: not-allowed;
-      transform: none;
     }
     .btn-preset-danger {
-      padding: 8px 16px;
-      background: #dc3545;
+      background-color: var(--google-red);
       color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 600;
-      transition: all 0.2s ease;
-    }
-    .btn-preset-danger:hover {
-      background: #c82333;
-      transform: translateY(-1px);
-    }
-    .btn-preset-danger:disabled {
-      background: #6c757d;
-      cursor: not-allowed;
-      transform: none;
-    }
-    .btn-secondary {
-      background: #6c757d;
-      color: white;
-      border: none;
-      padding: 10px 16px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 600;
-      transition: all 0.2s ease;
-    }
-    .btn-secondary:hover {
-      background: #5a6268;
-      transform: translateY(-1px);
-    }
-    .gradient-preview-section {
-      margin-top: 20px;
-      padding-top: 20px;
-      border-top: 1px solid #e2e7ea;
     }
     .gradient-preview-box {
-      height: 60px;
-      border-radius: 8px;
-      background: linear-gradient(135deg, #1a73e8, #4285f4);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: 600;
-      margin-top: 10px;
-      border: 2px solid #e2e7ea;
-      transition: all 0.3s ease;
+      height: 50px;
+      border-radius: 4px;
+      background: linear-gradient(135deg, var(--google-blue), #4285f4);
+      margin-top: 8px;
+      border: 1px solid var(--border-color);
     }
     .json-validation {
-      margin: 10px 0 15px 0;
-      padding: 15px;
-      border-radius: 8px;
-      background: #f8f9fa;
-      border: 1px solid #e2e7ea;
+      margin-bottom: 12px;
+      padding: 12px;
+      border-radius: 4px;
+      background: var(--background-color);
     }
     .validation-status {
       display: flex;
       align-items: center;
       gap: 8px;
       font-size: 14px;
-      font-weight: 600;
+      font-weight: 500;
     }
     .validation-icon {
-      font-size: 16px;
+      font-size: 20px;
     }
     .validation-details {
-      margin-top: 10px;
+      margin-top: 8px;
       font-size: 13px;
       line-height: 1.4;
       padding: 8px 12px;
-      border-radius: 6px;
+      border-radius: 4px;
       display: none;
     }
     .validation-error {
-      background: #ffebee;
-      border: 1px solid #ffcdd2;
-      color: #c62828;
+      background: #fce8e6;
+      color: #a50e0e;
     }
     .validation-warning {
-      background: #fff8e1;
-      border: 1px solid #ffecb3;
-      color: #8a6d3b;
+      background: #feede0;
+      color: #b06000;
     }
-    
-    /* フォルダURL行のレイアウト調整 */
-    .folder-url-row input[type="text"] {
-      flex: 1 1 auto;
-      min-width: 0;
-    }
-    
-    #openFolderBtn {
-      flex: 0 0 auto;
-    }
-    
     .creator-info {
       text-align: center;
-      margin-top: 20px;
-      padding-top: 15px;
-      border-top: 1px solid #e2e7ea;
+      margin-top: 32px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-color);
     }
-    
     .creator-info small {
-      color: #6c757d;
+      color: var(--secondary-text);
       font-size: 12px;
-      font-weight: 500;
+      font-weight: 400;
     }
   </style>
 </head>
@@ -461,23 +369,22 @@
   <div class="container">
     <h1>Google Slide Generator</h1>
     <div class="main-grid">
-      <div class="editor-section">
+      <div class="card">
         <h2>1. スライドデータを入力</h2>
-        <div class="editor-content">
-        <div id="jsonValidation" class="json-validation">
-          <div class="validation-status" id="validationStatus">
-            <span class="validation-icon">⏳</span>
-            <span class="validation-text">JSON形式をチェック中...</span>
+        <div class="card-content">
+          <div id="jsonValidation" class="json-validation">
+            <div class="validation-status" id="validationStatus">
+              <span class="validation-icon material-icons">hourglass_empty</span>
+              <span class="validation-text">JSON形式をチェック中...</span>
+            </div>
+            <div class="validation-details" id="validationDetails"></div>
           </div>
-          <div class="validation-details" id="validationDetails"></div>
-        </div>
-        <textarea id="slideDataInput"></textarea>
+          <textarea id="slideDataInput" placeholder="ここにJSONデータを貼り付けます"></textarea>
         </div>
       </div>
-      <div class="settings-section">
+      <div class="card">
         <h2>2. デザイン設定</h2>
-        <div class="settings-content">
-          <!-- プリセット管理 -->
+        <div class="card-content">
           <div class="preset-management">
             <div class="preset-controls">
               <label for="presetSelect">保存済みプリセット</label>
@@ -485,8 +392,8 @@
                 <select id="presetSelect" class="preset-select">
                   <option value="">プリセットを選択...</option>
                 </select>
-                <button id="savePreset" type="button" class="btn-preset">保存</button>
-                <button id="deletePreset" type="button" class="btn-preset-danger" disabled>削除</button>
+                <button id="savePreset" type="button" class="btn btn-preset">保存</button>
+                <button id="deletePreset" type="button" class="btn btn-preset-danger" disabled>削除</button>
               </div>
             </div>
           </div>
@@ -495,13 +402,14 @@
             <div>
               <label for="primaryColor">プライマリカラー</label>
               <div class="color-picker-wrapper">
-                <input type="color" id="primaryColor" value="#1a73e8">
-                <input type="text" id="primaryColorText" value="#1a73e8">
+                <input type="color" id="primaryColor" value="#4285F4">
+                <input type="text" id="primaryColorText" value="#4285F4">
               </div>
             </div>
              <div>
               <label for="fontFamily">フォント</label>
               <select id="fontFamily">
+                <option value="Roboto">Roboto</option>
                 <option value="Noto Sans JP" selected>Noto Sans JP</option>
                 <option value="Arial">Arial</option>
                 <option value="M PLUS 1p">M PLUS 1p</option>
@@ -514,9 +422,9 @@
             </div>
             <div style="grid-column: 1 / -1;">
               <label for="driveFolderUrl">保存先フォルダURL</label>
-              <div class="folder-url-row" style="display: flex; gap: 6px; align-items: center;">
-                <input type="text" id="driveFolderUrl" value="" style="flex: 1; margin-right: 0;">
-                <button id="openFolderBtn" type="button" class="btn-secondary" style="padding: 6px 10px; font-size: 11px; white-space: nowrap; min-width: auto; flex-shrink: 0;">開く</button>
+              <div class="url-input-wrapper">
+                <input type="text" id="driveFolderUrl" value="">
+                <button id="openFolderBtn" type="button" class="btn-secondary">開く</button>
               </div>
             </div>
           </div>
@@ -524,7 +432,7 @@
           <div class="collapsible-section">
             <div class="collapsible-header">
               <span>装飾設定</span>
-              <span class="collapsible-icon">▼</span>
+              <span class="collapsible-icon material-icons">expand_more</span>
             </div>
             <div class="collapsible-content">
                <div class="checkbox-wrapper">
@@ -539,33 +447,30 @@
                 <input type="checkbox" id="showDateColumn" checked>
                 <label for="showDateColumn">タイトルスライドに日付を表示</label>
               </div>
-              <div class="checkbox-wrapper" style="border-top: 1px solid #e2e7ea; margin-top: 15px; padding-top: 15px;">
+              <div class="checkbox-wrapper" style="border-top: 1px solid var(--border-color); margin-top: 12px; padding-top: 12px;">
                 <input type="checkbox" id="enableGradient">
                 <label for="enableGradient">グラデーションを適用</label>
               </div>
-              <div id="gradientWarning" class="note-warning">生成に時間がかかる場合があります</div>
               <div id="gradient-options">
                 <div class="settings-grid">
                    <div>
                     <label for="gradientStart">開始色</label>
                     <div class="color-picker-wrapper">
-                      <input type="color" id="gradientStart" value="#1a73e8">
-                      <input type="text" id="gradientStartText" value="#1a73e8">
+                      <input type="color" id="gradientStart" value="#4285F4">
+                      <input type="text" id="gradientStartText" value="#4285F4">
                     </div>
                   </div>
                   <div>
                     <label for="gradientEnd">終了色</label>
                     <div class="color-picker-wrapper">
-                      <input type="color" id="gradientEnd" value="#4285f4">
-                      <input type="text" id="gradientEndText" value="#4285f4">
+                      <input type="color" id="gradientEnd" value="#34A853">
+                      <input type="text" id="gradientEndText" value="#34A853">
                     </div>
                   </div>
                 </div>
                 <div class="gradient-preview-section">
                   <label>グラデーションプレビュー</label>
-                  <div id="gradientPreview" class="gradient-preview-box">
-                    <span>グラデーション見本</span>
-                  </div>
+                  <div id="gradientPreview" class="gradient-preview-box"></div>
                 </div>
               </div>
             </div>
@@ -573,82 +478,65 @@
 
           <div class="collapsible-section">
             <div class="collapsible-header">
-              <span>ロゴ設定</span>
-              <span class="collapsible-icon">▼</span>
+              <span>ロゴ・背景設定</span>
+              <span class="collapsible-icon material-icons">expand_more</span>
             </div>
             <div class="collapsible-content">
               <div class="note-info">
-                画像URLまたはGoogleドライブの共有リンクを入力してください。
+                画像URLまたはGoogleドライブの共有リンク(File ID)を入力してください。
               </div>
-              <div class="settings-grid">
+              <div class="settings-grid" style="grid-template-columns: 1fr;">
                 <div>
                   <label for="headerLogoUrl">ヘッダーロゴ</label>
                   <div class="url-input-wrapper">
-                    <input type="text" id="headerLogoUrl" value="" placeholder="">
-                    <button type="button" class="btn-secondary" style="padding: 6px 10px; font-size: 11px; white-space: nowrap; min-width: auto; flex-shrink: 0;">開く</button>
+                    <input type="text" id="headerLogoUrl" value="">
+                    <button type="button" class="btn-secondary">プレビュー</button>
                   </div>
                 </div>
                 <div>
                   <label for="closingLogoUrl">クロージングロゴ</label>
                   <div class="url-input-wrapper">
-                    <input type="text" id="closingLogoUrl" value="" placeholder="">
-                    <button type="button" class="btn-secondary" style="padding: 6px 10px; font-size: 11px; white-space: nowrap; min-width: auto; flex-shrink: 0;">開く</button>
+                    <input type="text" id="closingLogoUrl" value="">
+                    <button type="button" class="btn-secondary">プレビュー</button>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="collapsible-section">
-            <div class="collapsible-header">
-              <span>背景設定</span>
-              <span class="collapsible-icon">▼</span>
-            </div>
-            <div class="collapsible-content">
-              <div class="note-info">
-                画像URLまたはGoogleドライブの共有リンクを入力してください。
-              </div>
-              <div class="settings-grid">
-                <div>
+                 <div>
                   <label for="titleBgUrl">タイトル背景</label>
                   <div class="url-input-wrapper">
-                    <input type="text" id="titleBgUrl" value="" placeholder="">
-                    <button type="button" class="btn-secondary" style="padding: 6px 10px; font-size: 11px; white-space: nowrap; min-width: auto; flex-shrink: 0;">開く</button>
+                    <input type="text" id="titleBgUrl" value="">
+                    <button type="button" class="btn-secondary">プレビュー</button>
                   </div>
                 </div>
                 <div>
                   <label for="sectionBgUrl">セクション背景</label>
                   <div class="url-input-wrapper">
-                    <input type="text" id="sectionBgUrl" value="" placeholder="">
-                    <button type="button" class="btn-secondary" style="padding: 6px 10px; font-size: 11px; white-space: nowrap; min-width: auto; flex-shrink: 0;">開く</button>
+                    <input type="text" id="sectionBgUrl" value="">
+                    <button type="button" class="btn-secondary">プレビュー</button>
                   </div>
                 </div>
                 <div>
                   <label for="mainBgUrl">メイン背景</label>
                   <div class="url-input-wrapper">
-                    <input type="text" id="mainBgUrl" value="" placeholder="">
-                    <button type="button" class="btn-secondary" style="padding: 6px 10px; font-size: 11px; white-space: nowrap; min-width: auto; flex-shrink: 0;">開く</button>
+                    <input type="text" id="mainBgUrl" value="">
+                    <button type="button" class="btn-secondary">プレビュー</button>
                   </div>
                 </div>
                 <div>
                   <label for="closingBgUrl">クロージング背景</label>
                   <div class="url-input-wrapper">
-                    <input type="text" id="closingBgUrl" value="" placeholder="">
-                    <button type="button" class="btn-secondary" style="padding: 6px 10px; font-size: 11px; white-space: nowrap; min-width: auto; flex-shrink: 0;">開く</button>
+                    <input type="text" id="closingBgUrl" value="">
+                    <button type="button" class="btn-secondary">プレビュー</button>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-          
-
 
           <div class="button-group" id="buttonGroup">
              <button id="generateBtn" type="button" class="btn">プレゼンテーションを生成</button>
           </div>
           <div id="status"></div>
           
-          <!-- 作者表記 -->
           <div class="creator-info">
             <small>Developed by まじん</small>
           </div>
@@ -659,19 +547,17 @@
 
   
   <script>
-    var loadedSettings = {}; // この値はGoogle Apps Script環境で置き換えられます
-    
-    // Google Apps Script環境でテンプレート記法が有効な場合、上記のloadedSettingsが置き換えられる
+    var loadedSettings = {};
     try {
       loadedSettings = <?!= JSON.stringify(loadSettings()) ?> || {};
     } catch (e) {
-      // 設定読み込みをスキップ
+      // Skip loading settings
     }
 
   function $(id){ return document.getElementById(id); }
 
   function showStatus(message, type, duration){
-    var s = $('status');
+    var s = $("status");
     if(s){
       s.textContent = message;
       s.className = 'status-' + type;
@@ -680,6 +566,7 @@
           if (s.textContent === message) {
             s.textContent = '';
             s.className = '';
+            s.style.display = 'none';
           }
         }, duration);
       }
@@ -688,31 +575,30 @@
 
   function getCurrentSettings() {
     return {
-      primaryColor: $('primaryColorText').value,
-      fontFamily: $('fontFamily').value,
-      showTitleUnderline: $('showTitleUnderline').checked,
-      showBottomBar: $('showBottomBar').checked,
-      showDateColumn: $('showDateColumn').checked,
-      enableGradient: $('enableGradient').checked,
-      gradientStart: $('gradientStartText').value,
-      gradientEnd: $('gradientEndText').value,
-      footerText: $('footerText').value.trim(),
-      headerLogoUrl: $('headerLogoUrl').value.trim(),
-      closingLogoUrl: $('closingLogoUrl').value.trim(),
-      titleBgUrl: $('titleBgUrl').value.trim(),
-      sectionBgUrl: $('sectionBgUrl').value.trim(),
-      mainBgUrl: $('mainBgUrl').value.trim(),
-      closingBgUrl: $('closingBgUrl').value.trim(),
-      driveFolderUrl: $('driveFolderUrl').value.trim()
+      primaryColor: $("primaryColorText").value,
+      fontFamily: $("fontFamily").value,
+      showTitleUnderline: $("showTitleUnderline").checked,
+      showBottomBar: $("showBottomBar").checked,
+      showDateColumn: $("showDateColumn").checked,
+      enableGradient: $("enableGradient").checked,
+      gradientStart: $("gradientStartText").value,
+      gradientEnd: $("gradientEndText").value,
+      footerText: $("footerText").value.trim(),
+      headerLogoUrl: $("headerLogoUrl").value.trim(),
+      closingLogoUrl: $("closingLogoUrl").value.trim(),
+      titleBgUrl: $("titleBgUrl").value.trim(),
+      sectionBgUrl: $("sectionBgUrl").value.trim(),
+      mainBgUrl: $("mainBgUrl").value.trim(),
+      closingBgUrl: $("closingBgUrl").value.trim(),
+      driveFolderUrl: $("driveFolderUrl").value.trim()
     };
   }
-
 
   function generate() {
     var startTime = Date.now();
     var timerId = null;
-    var generateBtn = $('generateBtn');
-    var slideDataString = $('slideDataInput').value;
+    var generateBtn = $("generateBtn");
+    var slideDataString = $("slideDataInput").value;
 
     if (!slideDataString.trim()) {
       showStatus('エラー: スライドデータが空です。', 'error');
@@ -729,7 +615,7 @@
 
     function extractFolderIdFromUrl(url) {
       if (!url || !url.trim()) return '';
-      var patterns = [ /\/drive\/folders\/([a-zA-Z0-9_-]+)/, /id=([a-zA-Z0-9_-]+).*folders/, /folders\/([a-zA-Z0-9_-]+)/ ];
+      var patterns = [ /\/drive\/folders\/([a-zA-Z0-9_-]+)/, /id=([a-zA-Z0-9_-]+)/ ];
       for (var i = 0; i < patterns.length; i++) {
         var match = url.match(patterns[i]);
         if (match && match[1]) return match[1];
@@ -737,15 +623,7 @@
       return url.trim();
     }
     
-    var extractedId = (function(url){
-      if (!url) return '';
-      // まずフォルダIDだけの可能性
-      if (/^[a-zA-Z0-9_-]{20,}$/.test(url)) return url;
-      var m = url.match(/\/drive\/folders\/([a-zA-Z0-9_-]+)/) ||
-              url.match(/id=([a-zA-Z0-9_-]+).*folders/) ||
-              url.match(/folders\/([a-zA-Z0-9_-]+)/);
-      return m ? m[1] : '';
-    })(settings.driveFolderUrl);
+    var extractedId = extractFolderIdFromUrl(settings.driveFolderUrl);
 
     if (settings.driveFolderUrl && !extractedId) {
       showStatus('エラー: 正しいGoogleドライブフォルダURLまたはIDを入力してください。', 'error');
@@ -755,10 +633,9 @@
 
     generateBtn.disabled = true;
     showStatus('スライドを生成しています... 0秒', 'loading');
-    // ランニングタイマー表示
     timerId = setInterval(function(){
       var elapsed = Math.floor((Date.now() - startTime) / 1000);
-      var s = $('status');
+      var s = $("status");
       if (s) {
         s.textContent = 'スライドを生成しています... ' + elapsed + '秒';
         s.className = 'status-loading';
@@ -770,9 +647,7 @@
         if (timerId) { clearInterval(timerId); timerId = null; }
         var elapsed = Math.round((Date.now() - startTime) / 1000);
         
-        
-        showStatus('', '');
-        var statusDiv = $('status');
+        var statusDiv = $("status");
         statusDiv.innerHTML = '🎉 生成が完了しました！（' + elapsed + '秒）<br>';
         var link = document.createElement('a');
         link.href = presentationUrl;
@@ -792,146 +667,101 @@
   }
 
   function toggleGradientOptions() {
-    var optionsDiv = $('gradient-options');
-    var warn = $('gradientWarning');
-    if ($('enableGradient').checked) {
+    var optionsDiv = $("gradient-options");
+    if ($("enableGradient").checked) {
       optionsDiv.style.display = 'block';
-      if (warn) warn.style.display = 'block';
     } else {
       optionsDiv.style.display = 'none';
-      if (warn) warn.style.display = 'none';
     }
   }
 
-
-  // 設定値をフォームに反映する関数
   function loadSettingsToForm() {
     if (loadedSettings && typeof loadedSettings === 'object') {
-      // 基本設定
-      if (loadedSettings.primaryColor) {
-        $('primaryColor').value = loadedSettings.primaryColor;
-        $('primaryColorText').value = loadedSettings.primaryColor;
-      }
-      if (loadedSettings.fontFamily) {
-        $('fontFamily').value = loadedSettings.fontFamily;
-      }
-      if (loadedSettings.footerText !== undefined) {
-        $('footerText').value = loadedSettings.footerText;
-      }
-      if (loadedSettings.driveFolderUrl !== undefined) {
-        $('driveFolderUrl').value = loadedSettings.driveFolderUrl;
-      }
+      $("primaryColor").value = loadedSettings.primaryColor || '#4285F4';
+      $("primaryColorText").value = loadedSettings.primaryColor || '#4285F4';
+      $("fontFamily").value = loadedSettings.fontFamily || 'Noto Sans JP';
+      $("footerText").value = loadedSettings.footerText || '';
+      $("driveFolderUrl").value = loadedSettings.driveFolderUrl || '';
+      $("showTitleUnderline").checked = loadedSettings.showTitleUnderline !== false;
+      $("showBottomBar").checked = loadedSettings.showBottomBar !== false;
+      $("showDateColumn").checked = loadedSettings.showDateColumn !== false;
+      $("enableGradient").checked = loadedSettings.enableGradient || false;
+      $("gradientStart").value = loadedSettings.gradientStart || '#4285F4';
+      $("gradientStartText").value = loadedSettings.gradientStart || '#4285F4';
+      $("gradientEnd").value = loadedSettings.gradientEnd || '#34A853';
+      $("gradientEndText").value = loadedSettings.gradientEnd || '#34A853';
+      $("headerLogoUrl").value = loadedSettings.headerLogoUrl || '';
+      $("closingLogoUrl").value = loadedSettings.closingLogoUrl || '';
+      $("titleBgUrl").value = loadedSettings.titleBgUrl || '';
+      $("sectionBgUrl").value = loadedSettings.sectionBgUrl || '';
+      $("mainBgUrl").value = loadedSettings.mainBgUrl || '';
+      $("closingBgUrl").value = loadedSettings.closingBgUrl || '';
       
-      // チェックボックス
-      if (loadedSettings.showTitleUnderline !== undefined) {
-        $('showTitleUnderline').checked = loadedSettings.showTitleUnderline;
-      }
-      if (loadedSettings.showBottomBar !== undefined) {
-        $('showBottomBar').checked = loadedSettings.showBottomBar;
-      }
-      if (loadedSettings.showDateColumn !== undefined) {
-        $('showDateColumn').checked = loadedSettings.showDateColumn;
-      }
-      if (loadedSettings.enableGradient !== undefined) {
-        $('enableGradient').checked = loadedSettings.enableGradient;
-      }
-      
-      // グラデーション設定
-      if (loadedSettings.gradientStart) {
-        $('gradientStart').value = loadedSettings.gradientStart;
-        $('gradientStartText').value = loadedSettings.gradientStart;
-      }
-      if (loadedSettings.gradientEnd) {
-        $('gradientEnd').value = loadedSettings.gradientEnd;
-        $('gradientEndText').value = loadedSettings.gradientEnd;
-      }
-      
-      // URL設定
-      if (loadedSettings.headerLogoUrl !== undefined) {
-        $('headerLogoUrl').value = loadedSettings.headerLogoUrl;
-      }
-      if (loadedSettings.closingLogoUrl !== undefined) {
-        $('closingLogoUrl').value = loadedSettings.closingLogoUrl;
-      }
-      if (loadedSettings.titleBgUrl !== undefined) {
-        $('titleBgUrl').value = loadedSettings.titleBgUrl;
-      }
-      if (loadedSettings.sectionBgUrl !== undefined) {
-        $('sectionBgUrl').value = loadedSettings.sectionBgUrl;
-      }
-      if (loadedSettings.mainBgUrl !== undefined) {
-        $('mainBgUrl').value = loadedSettings.mainBgUrl;
-      }
-      if (loadedSettings.closingBgUrl !== undefined) {
-        $('closingBgUrl').value = loadedSettings.closingBgUrl;
-      }
-      
-      // グラデーションオプションの表示状態を更新
       toggleGradientOptions();
+      updateGradientPreview();
     }
   }
 
-  // プリセット管理関数
   function getAllSettings() {
     return {
-      primaryColor: $('primaryColorText').value,
-      fontFamily: $('fontFamily').value,
-      footerText: $('footerText').value,
-      driveFolderUrl: $('driveFolderUrl').value,
-      showTitleUnderline: $('showTitleUnderline').checked,
-      showBottomBar: $('showBottomBar').checked,
-      showDateColumn: $('showDateColumn').checked,
-      enableGradient: $('enableGradient').checked,
-      gradientStart: $('gradientStartText').value,
-      gradientEnd: $('gradientEndText').value,
-      headerLogoUrl: $('headerLogoUrl').value,
-      closingLogoUrl: $('closingLogoUrl').value,
-      titleBgUrl: $('titleBgUrl').value,
-      sectionBgUrl: $('sectionBgUrl').value,
-      mainBgUrl: $('mainBgUrl').value,
-      closingBgUrl: $('closingBgUrl').value
+      primaryColor: $("primaryColorText").value,
+      fontFamily: $("fontFamily").value,
+      footerText: $("footerText").value,
+      driveFolderUrl: $("driveFolderUrl").value,
+      showTitleUnderline: $("showTitleUnderline").checked,
+      showBottomBar: $("showBottomBar").checked,
+      showDateColumn: $("showDateColumn").checked,
+      enableGradient: $("enableGradient").checked,
+      gradientStart: $("gradientStartText").value,
+      gradientEnd: $("gradientEndText").value,
+      headerLogoUrl: $("headerLogoUrl").value,
+      closingLogoUrl: $("closingLogoUrl").value,
+      titleBgUrl: $("titleBgUrl").value,
+      sectionBgUrl: $("sectionBgUrl").value,
+      mainBgUrl: $("mainBgUrl").value,
+      closingBgUrl: $("closingBgUrl").value
     };
   }
 
   function applyAllSettings(settings) {
-    $('primaryColor').value = settings.primaryColor || '#4285F4';
-    $('primaryColorText').value = settings.primaryColor || '#4285F4';
-    $('fontFamily').value = settings.fontFamily || 'Noto Sans JP';
-    $('footerText').value = settings.footerText || '';
-    $('driveFolderUrl').value = settings.driveFolderUrl || '';
-    $('showTitleUnderline').checked = settings.showTitleUnderline !== false;
-    $('showBottomBar').checked = settings.showBottomBar !== false;
-    $('showDateColumn').checked = settings.showDateColumn !== false;
-    $('enableGradient').checked = settings.enableGradient || false;
-    $('gradientStart').value = settings.gradientStart || '#4285F4';
-    $('gradientStartText').value = settings.gradientStart || '#4285F4';
-    $('gradientEnd').value = settings.gradientEnd || '#ff52df';
-    $('gradientEndText').value = settings.gradientEnd || '#ff52df';
-    $('headerLogoUrl').value = settings.headerLogoUrl || '';
-    $('closingLogoUrl').value = settings.closingLogoUrl || '';
-    $('titleBgUrl').value = settings.titleBgUrl || '';
-    $('sectionBgUrl').value = settings.sectionBgUrl || '';
-    $('mainBgUrl').value = settings.mainBgUrl || '';
-    $('closingBgUrl').value = settings.closingBgUrl || '';
+    $("primaryColor").value = settings.primaryColor || '#4285F4';
+    $("primaryColorText").value = settings.primaryColor || '#4285F4';
+    $("fontFamily").value = settings.fontFamily || 'Noto Sans JP';
+    $("footerText").value = settings.footerText || '';
+    $("driveFolderUrl").value = settings.driveFolderUrl || '';
+    $("showTitleUnderline").checked = settings.showTitleUnderline !== false;
+    $("showBottomBar").checked = settings.showBottomBar !== false;
+    $("showDateColumn").checked = settings.showDateColumn !== false;
+    $("enableGradient").checked = settings.enableGradient || false;
+    $("gradientStart").value = settings.gradientStart || '#4285F4';
+    $("gradientStartText").value = settings.gradientStart || '#4285F4';
+    $("gradientEnd").value = settings.gradientEnd || '#34A853';
+    $("gradientEndText").value = settings.gradientEnd || '#34A853';
+    $("headerLogoUrl").value = settings.headerLogoUrl || '';
+    $("closingLogoUrl").value = settings.closingLogoUrl || '';
+    $("titleBgUrl").value = settings.titleBgUrl || '';
+    $("sectionBgUrl").value = settings.sectionBgUrl || '';
+    $("mainBgUrl").value = settings.mainBgUrl || '';
+    $("closingBgUrl").value = settings.closingBgUrl || '';
     
     toggleGradientOptions();
     updateGradientPreview();
   }
 
   function loadUserPresets() {
-    const presetsKey = 'slideFactory_presets';
+    const presetsKey = 'slideFactory_presets_v2';
     return JSON.parse(localStorage.getItem(presetsKey) || '{}');
   }
 
   function saveUserPresets(presets) {
-    const presetsKey = 'slideFactory_presets';
+    const presetsKey = 'slideFactory_presets_v2';
     localStorage.setItem(presetsKey, JSON.stringify(presets));
   }
 
   function updatePresetSelect() {
     const presets = loadUserPresets();
-    const select = $('presetSelect');
-    const deleteBtn = $('deletePreset');
+    const select = $("presetSelect");
+    const deleteBtn = $("deletePreset");
     
     select.innerHTML = '<option value="">プリセットを選択...</option>';
     
@@ -942,67 +772,28 @@
       select.appendChild(option);
     });
     
-    const hasSelection = select.value !== '';
-    deleteBtn.disabled = !hasSelection;
+    deleteBtn.disabled = select.value === '';
   }
 
   function saveCurrentPreset() {
     const presets = loadUserPresets();
-    const select = $('presetSelect');
-    const selectedPreset = select.value;
+    const name = prompt('プリセット名を入力してください:');
+    if (!name || !name.trim()) return;
     
-    let name;
-    let isOverwrite = false;
-    
-    if (selectedPreset) {
-      // 既存プリセットが選択されている場合
-      const inputName = prompt(`プリセット名を入力してください:\n（空欄で「${selectedPreset}」を上書き保存、名前入力で別名保存）`);
-      if (inputName === null) return; // キャンセル
-      
-      if (!inputName.trim()) {
-        // 空欄の場合は上書き保存
-        name = selectedPreset;
-        isOverwrite = true;
-      } else {
-        // 名前が入力された場合は別名保存
-        name = inputName.trim();
-      }
-    } else {
-      // 新規保存の場合
-      name = prompt('プリセット名を入力してください:');
-      if (!name || !name.trim()) return;
-      name = name.trim();
-    }
-    
-    if (name.length > 20) {
-      alert('プリセット名は20文字以内にしてください。');
+    if (Object.keys(presets).length >= 5 && !presets[name]) {
+      alert('プリセットは最大5つまで保存できます。');
       return;
     }
     
-    // 新規保存の場合のみ数制限をチェック
-    const isNewPreset = !presets.hasOwnProperty(name);
-    const presetCount = Object.keys(presets).length;
-    
-    if (isNewPreset && presetCount >= 4) {
-      alert('プリセットは最大4つまで保存できます。既存のプリセットを削除するか、上書き保存してください。');
-      return;
-    }
-    
-    const settings = getAllSettings();
-    presets[name] = settings;
+    presets[name.trim()] = getAllSettings();
     saveUserPresets(presets);
     updatePresetSelect();
-    
-    select.value = name;
-    
-    const action = isOverwrite ? '上書き保存' : (isNewPreset ? '保存' : '別名保存');
-    showStatus(`✅ プリセット「${name}」を${action}しました`, 'success', 3000);
+    $("presetSelect").value = name.trim();
+    showStatus(`✅ プリセット「${name.trim()}」を保存しました`, 'success', 3000);
   }
 
   function loadSelectedPreset() {
-    const select = $('presetSelect');
-    const presetName = select.value;
-    
+    const presetName = $("presetSelect").value;
     if (!presetName) return;
     
     const presets = loadUserPresets();
@@ -1015,61 +806,26 @@
   }
 
   function deleteSelectedPreset() {
-    const select = $('presetSelect');
-    const presetName = select.value;
-    
-    if (!presetName) return;
-    
-    if (!confirm(`プリセット「${presetName}」を削除しますか？`)) return;
+    const presetName = $("presetSelect").value;
+    if (!presetName || !confirm(`プリセット「${presetName}」を削除しますか？`)) return;
     
     const presets = loadUserPresets();
     delete presets[presetName];
     saveUserPresets(presets);
     updatePresetSelect();
-    
     showStatus(`✅ プリセット「${presetName}」を削除しました`, 'success', 3000);
   }
 
-  function saveSelectedPresetToServer(presetName) {
-    google.script.run
-      .withSuccessHandler(function(result) {
-        if (result.status === 'success') {
-        } else {
-        }
-      })
-      .withFailureHandler(function(error) {
-      })
-      .saveSelectedPreset(presetName);
-  }
-
-  function restoreSelectedPreset() {
-    let savedPreset = null;
-    try {
-      savedPreset = <?= JSON.stringify(settings?.selectedPreset ?? null) ?>;
-    } catch (e) { 
-    }
-
-    if (!savedPreset || savedPreset === 'default') return;
-    const select = $('presetSelect');
-    if (select) {
-      select.value = savedPreset;
-      loadSelectedPreset();
-      $('deletePreset').disabled = false;
-    }
-  }
-
   function validateJSON() {
-    const textarea = $('slideDataInput');
-    const statusIcon = document.querySelector('.validation-icon');
-    const statusText = document.querySelector('.validation-text');
-    const details = $('validationDetails');
-    
-    if (!textarea || !statusIcon || !statusText || !details) return;
+    const textarea = $("slideDataInput");
+    const statusIcon = document.querySelector('#validationStatus .validation-icon');
+    const statusText = document.querySelector('#validationStatus .validation-text');
+    const details = $("validationDetails");
     
     const jsonText = textarea.value.trim();
     
     if (!jsonText) {
-      statusIcon.textContent = '⏳';
+      statusIcon.textContent = 'hourglass_empty';
       statusText.textContent = 'JSON入力待機中...';
       details.style.display = 'none';
       return;
@@ -1077,37 +833,16 @@
     
     try {
       const parsed = JSON.parse(jsonText);
+      if (!Array.isArray(parsed)) throw new Error('slideDataは配列である必要があります');
       
-      if (!Array.isArray(parsed)) {
-        throw new Error('slideDataは配列である必要があります');
-      }
-      
-      let warnings = [];
-      let slideCount = 0;
-      
-      parsed.forEach((slide, index) => {
-        if (!slide.type) {
-          warnings.push(`スライド${index + 1}: typeプロパティが必要です`);
-        }
-        if (slide.type === 'title' && !slide.title) {
-          warnings.push(`スライド${index + 1}: titleスライドにはtitleが必要です`);
-        }
-        slideCount++;
-      });
-      
-      statusIcon.textContent = '✅';
-      statusText.textContent = `JSON形式: 正常 (${slideCount}枚のスライド)`;
-      
-      if (warnings.length > 0) {
-        details.className = 'validation-details validation-warning';
-        details.innerHTML = warnings.join('<br>');
-        details.style.display = 'block';
-      } else {
-        details.style.display = 'none';
-      }
+      statusIcon.textContent = 'check_circle';
+      statusIcon.style.color = 'var(--google-green)';
+      statusText.textContent = `JSON形式: 正常 (${parsed.length}枚のスライド)`;
+      details.style.display = 'none';
       
     } catch (error) {
-      statusIcon.textContent = '❌';
+      statusIcon.textContent = 'error';
+      statusIcon.style.color = 'var(--google-red)';
       statusText.textContent = 'JSON形式: エラー';
       details.className = 'validation-details validation-error';
       details.textContent = error.message;
@@ -1116,197 +851,64 @@
   }
 
   function updateGradientPreview() {
-    const startColor = $('gradientStartText').value;
-    const endColor = $('gradientEndText').value;
-    const preview = $('gradientPreview');
-    
+    const startColor = $("gradientStartText").value;
+    const endColor = $("gradientEndText").value;
+    const preview = $("gradientPreview");
     if (preview) {
       preview.style.background = `linear-gradient(135deg, ${startColor}, ${endColor})`;
     }
   }
 
-
-
-
-  function openFolder() {
-    const folderUrl = $('driveFolderUrl').value.trim();
-    if (!folderUrl) {
-      showStatus('保存先フォルダURLを入力してください', 'error', 3000);
-      return;
+  function openUrl(url) {
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
     }
-    
-    // URLの形式をチェック
-    if (!folderUrl.includes('drive.google.com') && !folderUrl.includes('docs.google.com')) {
-      showStatus('正しいGoogleドライブフォルダURLを入力してください', 'error', 3000);
-      return;
-    }
-    
-    window.open(folderUrl, '_blank');
   }
 
-
   document.addEventListener('DOMContentLoaded', function() {
-    if (!(window.google && google.script && google.script.run)) {
-    }
-    
-    
     loadSettingsToForm();
 
+    $("generateBtn").addEventListener('click', generate);
 
-    $('generateBtn').addEventListener('click', generate);
+    ['primaryColor', 'gradientStart', 'gradientEnd'].forEach(id => {
+      $(id).addEventListener('input', function() { $(id + 'Text').value = this.value; if(id !== 'primaryColor') updateGradientPreview(); });
+      $(id + 'Text').addEventListener('input', function() { $(id).value = this.value; if(id !== 'primaryColor') updateGradientPreview(); });
+    });
 
-    $('primaryColor').addEventListener('input', function() { $('primaryColorText').value = this.value; });
-    $('primaryColorText').addEventListener('input', function() { $('primaryColor').value = this.value; });
-    $('gradientStart').addEventListener('input', function() { $('gradientStartText').value = this.value; updateGradientPreview(); });
-    $('gradientStartText').addEventListener('input', function() { $('gradientStart').value = this.value; updateGradientPreview(); });
-    $('gradientEnd').addEventListener('input', function() { $('gradientEndText').value = this.value; updateGradientPreview(); });
-    $('gradientEndText').addEventListener('input', function() { $('gradientEnd').value = this.value; updateGradientPreview(); });
-
-    $('enableGradient').addEventListener('change', toggleGradientOptions);
-    toggleGradientOptions(); // Initial check
+    $("enableGradient").addEventListener('change', toggleGradientOptions);
+    toggleGradientOptions();
     
-    $('slideDataInput').addEventListener('input', validateJSON);
+    $("slideDataInput").addEventListener('input', validateJSON);
     
-    $('presetSelect').addEventListener('change', function() {
-      const deleteBtn = $('deletePreset');
-      const hasSelection = this.value !== '';
-      deleteBtn.disabled = !hasSelection;
-      
-      // プリセット選択時に自動適用
-      if (hasSelection) {
-        loadSelectedPreset();
-        // 選択されたプリセットを保存
-        saveSelectedPresetToServer(this.value);
-      }
+    $("presetSelect").addEventListener('change', function() {
+      $("deletePreset").disabled = this.value === '';
+      if (this.value) loadSelectedPreset();
     });
     
-    $('savePreset').addEventListener('click', saveCurrentPreset);
-    $('deletePreset').addEventListener('click', deleteSelectedPreset);
+    $("savePreset").addEventListener('click', saveCurrentPreset);
+    $("deletePreset").addEventListener('click', deleteSelectedPreset);
     
-    $('openFolderBtn').addEventListener('click', openFolder);
+    $("openFolderBtn").addEventListener('click', () => openUrl($("driveFolderUrl").value.trim()));
     
+    document.querySelectorAll('.url-input-wrapper .btn-secondary').forEach(button => {
+      button.addEventListener('click', function() {
+        const input = this.previousElementSibling;
+        if (input) openUrl(input.value.trim());
+      });
+    });
+
     validateJSON();
     updateGradientPreview();
     updatePresetSelect();
-    
-    restoreSelectedPreset();
 
-    document.querySelectorAll('.collapsible-header').forEach(function(header) {
+    document.querySelectorAll('.collapsible-header').forEach(header => {
       header.addEventListener('click', function() {
-        var content = this.nextElementSibling;
-        if (content) {
-          content.classList.toggle('active');
-          this.classList.toggle('active');
-        }
+        const content = this.nextElementSibling;
+        this.classList.toggle('active');
+        content.classList.toggle('active');
+        const icon = this.querySelector('.collapsible-icon');
+        icon.textContent = this.classList.contains('active') ? 'expand_less' : 'expand_more';
       });
-    });
-
-    // Googleドライブ共有リンクを処理する関数（FileIDまたは画像URLに変換）
-    function convertDriveUrl(url, extractFileIdOnly = false) {
-      if (!url || !url.includes('drive.google.com')) {
-        return url;
-      }
-      
-      // ファイルIDを抽出するパターン
-      var patterns = [
-        /\/d\/([a-zA-Z0-9_-]+)/,           // https://drive.google.com/file/d/FILE_ID/view
-        /id=([a-zA-Z0-9_-]+)/,            // https://drive.google.com/open?id=FILE_ID
-        /\/file\/d\/([a-zA-Z0-9_-]+)/     // より具体的なパターン
-      ];
-      
-      for (var i = 0; i < patterns.length; i++) {
-        var match = url.match(patterns[i]);
-        if (match && match[1]) {
-          var fileId = match[1];
-          
-          // FileIDのみを返すか、画像URLに変換するかを判定
-          if (extractFileIdOnly) {
-            return fileId;
-          } else {
-            // 既に画像URL形式の場合はそのまま返す
-            if (url.includes('uc?export=view')) {
-              return url;
-            }
-            return 'https://drive.google.com/uc?export=view&id=' + fileId;
-          }
-        }
-      }
-      
-      return url; // 変換できない場合は元のURLを返す
-    }
-
-
-    function setupAutoConvertInput(input, useFileIdOnly = false) {
-      input.addEventListener('input', function() {
-        var url = this.value.trim();
-        if (url) {
-          var convertedUrl = convertDriveUrl(url, useFileIdOnly);
-          if (convertedUrl !== url) {
-            this.value = convertedUrl;
-            var message = useFileIdOnly ? 
-              '✅ Googleドライブ共有リンクから FileID を抽出しました' : 
-              '✅ Googleドライブ共有リンクを自動変換しました';
-            showStatus(message, 'success', 1500);
-          }
-        }
-      });
-    }
-
-    function getPreviewUrl(inputValue) {
-      if (!inputValue) return null;
-      
-      if (inputValue.startsWith('http') && !inputValue.includes('drive.google.com')) {
-        return inputValue;
-      }
-      
-      if (inputValue.includes('drive.google.com')) {
-        // 既に共有リンクの場合はそのまま返す
-        if (inputValue.includes('/file/d/') || inputValue.includes('open?id=')) {
-          return inputValue;
-        }
-      }
-      
-      var fileIdPattern = /^[a-zA-Z0-9_-]{25,}$/;
-      if (fileIdPattern.test(inputValue)) {
-        return 'https://drive.google.com/file/d/' + inputValue + '/view';
-      }
-      
-      var match = inputValue.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-      if (match && match[1]) {
-        return 'https://drive.google.com/file/d/' + match[1] + '/view';
-      }
-      
-      return inputValue; // その他の場合はそのまま
-    }
-
-    document.querySelectorAll('.preview-btn, .btn-secondary').forEach(function(button) {
-      // 保存先フォルダURLの「開く」ボタンは除外
-      if (button.id === 'openFolderBtn') return;
-      
-      button.addEventListener('click', function() {
-        var input = this.parentElement.querySelector('input[type="text"]');
-        if (input) {
-          var inputValue = input.value.trim();
-          if (inputValue) {
-            var previewUrl = getPreviewUrl(inputValue);
-            if (previewUrl) {
-              window.open(previewUrl, '_blank', 'noopener,noreferrer');
-            } else {
-              alert('プレビューできない形式です');
-            }
-          } else {
-            alert('URLを入力してください');
-          }
-        }
-      });
-    });
-
-    document.querySelectorAll('#titleBgUrl, #sectionBgUrl, #mainBgUrl, #closingBgUrl').forEach(function(input) {
-      setupAutoConvertInput(input, true); // FileIDのみ抽出
-    });
-    
-    document.querySelectorAll('#headerLogoUrl, #closingLogoUrl').forEach(function(input) {
-      setupAutoConvertInput(input, true); // FileIDのみ抽出
     });
   });
 </script>
