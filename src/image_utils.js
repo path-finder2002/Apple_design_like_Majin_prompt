@@ -174,3 +174,5 @@ function applyFill(slide, x, y, width, height, settings) {
     shape.getFill().setSolidFill(settings.primaryColor);
     shape.getBorder().setTransparent();
   }
+
+}

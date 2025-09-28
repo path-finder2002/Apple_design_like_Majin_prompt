@@ -1364,4 +1364,3 @@ function drawFaqItems(slide, items, layout, listArea, settings) {
     currentY += cardHeight + GAP_ITEM;
   });
 }
-

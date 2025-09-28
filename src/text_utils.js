@@ -148,7 +148,7 @@ function cleanSpeakerNotes(notesText) {
   cleaned = cleaned.replace(/\*\*([^*]+)\*\*/g, '$1');
   
   // [[強調語]] を除去
-  cleaned = cleaned.replace(/\[\[([^\]]+)\]\]/g, '$1');
+  cleaned = cleaned.replace(/\\\[\[([^\]]+)\]\]/g, '$1');
   
   // *イタリック* を除去（念のため）
   cleaned = cleaned.replace(/\*([^*]+)\*/g, '$1');
@@ -184,4 +184,3 @@ function isAgendaTitle(title) {
 function buildAgendaFromSlideData() {
   return __SLIDE_DATA_FOR_AGENDA.filter(d => d && d.type === 'section' && d.title).map(d => d.title.trim());
 }
-
