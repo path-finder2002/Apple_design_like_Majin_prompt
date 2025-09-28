@@ -24,7 +24,8 @@ function doGet(e) {
 
 // HTML テンプレートから部分テンプレートを読み込むための include ヘルパー
 function include(filename) {
-  return HtmlService.createHtmlOutputFromFile(filename).getContent();
+  const normalized = String(filename).replace(/[\\/]+/g, '_');
+  return HtmlService.createHtmlOutputFromFile(normalized).getContent();
 }
 
 function saveSettings(settings) {
