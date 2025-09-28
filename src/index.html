@@ -1159,8 +1159,7 @@
     try { 
       JSON.parse(slideDataString); 
     } catch(e) { 
-      showStatus('エラー: JSON形式が正しくありません。
-' + e.message, 'error', 5000);
+      showStatus('エラー: JSON形式が正しくありません。' + e.message, 'error', 5000);
       logClient('error', 'JSON parse failed', e.message);
       return;
     }
