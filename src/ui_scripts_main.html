@@ -1,0 +1,648 @@
+    let loadedSettings = {};
+    const clientLogPrefix = '[SlideGenerator]';
+
+    function logClient(level, message, payload) {
+      try {
+        const logger = console[level] ? console[level].bind(console) : console.log.bind(console);
+        if (typeof payload === 'undefined') {
+          logger(`${clientLogPrefix} ${message}`);
+        } else {
+          logger(`${clientLogPrefix} ${message}`, payload);
+        }
+      } catch (error) {
+        // Ignore logging failures
+      }
+    }
+    try {
+      const settingsJson = '<?!= JSON.stringify(loadSettings()) ?>';
+      if (settingsJson && settingsJson !== 'undefined' && settingsJson.trim().startsWith('{')) {
+        loadedSettings = JSON.parse(settingsJson);
+        logClient('info', 'Loaded persisted settings', { keys: Object.keys(loadedSettings) });
+      }
+    } catch (e) {
+      console.warn('Failed to parse persisted settings; falling back to defaults.', e);
+      logClient('warn', 'Persisted settings parsing failed', e.message);
+    }
+
+    const isGasRuntimeAvailable = typeof google !== 'undefined' && google.script && google.script.run;
+
+    const THEME_COLORS = ['default', 'google-blue', 'google-red', 'google-green', 'google-yellow'];
+
+    // Theme management functions
+    function detectSystemTheme() {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+
+    function saveThemePreference(theme) {
+      try {
+        localStorage.setItem('slideGenerator_theme', theme);
+        logClient('info', 'Theme preference saved', theme);
+      } catch (error) {
+        logClient('warn', 'Failed to save theme preference', error.message);
+      }
+    }
+
+    function loadThemePreference() {
+      try {
+        const saved = localStorage.getItem('slideGenerator_theme');
+        if (saved && (saved === 'light' || saved === 'dark')) {
+          return saved;
+        }
+      } catch (error) {
+        logClient('warn', 'Failed to load theme preference', error.message);
+      }
+      return detectSystemTheme();
+    }
+
+    function saveThemeColor(themeColor) {
+      try {
+        localStorage.setItem('slideGenerator_theme_color', themeColor);
+      } catch (e) {}
+    }
+
+    function loadThemeColor() {
+      try {
+        return localStorage.getItem('slideGenerator_theme_color') || 'default';
+      } catch (e) {
+        return 'default';
+      }
+    }
+
+    function applyThemeColor(themeColor) {
+      document.documentElement.setAttribute('data-theme-color', themeColor);
+      logClient('info', 'Theme color applied', themeColor);
+    }
+
+    function cycleThemeColor() {
+      const currentThemeColor = document.documentElement.getAttribute('data-theme-color') || 'default';
+      const currentIndex = THEME_COLORS.indexOf(currentThemeColor);
+      const nextIndex = (currentIndex + 1) % THEME_COLORS.length;
+      const newThemeColor = THEME_COLORS[nextIndex];
+      applyThemeColor(newThemeColor);
+      saveThemeColor(newThemeColor);
+    }
+
+    function updateThemeToggleButton(theme) {
+      const toggleButton = $('themeToggle');
+      const icon = toggleButton.querySelector('.material-icons');
+      
+      if (theme === 'dark') {
+        icon.textContent = 'dark_mode';
+        toggleButton.setAttribute('aria-label', 'ライトテーマに切り替え');
+      } else {
+        icon.textContent = 'light_mode';
+        toggleButton.setAttribute('aria-label', 'ダークテーマに切り替え');
+      }
+    }
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      updateThemeToggleButton(theme);
+      logClient('info', 'Theme applied', theme);
+    }
+
+  function toggleUITheme() {
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+      
+      applyTheme(newTheme);
+      saveThemePreference(newTheme);
+      
+      logClient('info', 'Theme toggled', { from: currentTheme, to: newTheme });
+    }
+
+    function initializeTheme() {
+      const preferredTheme = loadThemePreference();
+      applyTheme(preferredTheme);
+
+      const preferredThemeColor = loadThemeColor();
+      applyThemeColor(preferredThemeColor);
+      
+      // Listen for system theme changes
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      mediaQuery.addEventListener('change', function(e) {
+        // Only auto-switch if user hasn't manually set a preference
+        const savedTheme = localStorage.getItem('slideGenerator_theme');
+        if (!savedTheme) {
+          const systemTheme = e.matches ? 'dark' : 'light';
+          applyTheme(systemTheme);
+          logClient('info', 'System theme change detected', systemTheme);
+        }
+      });
+    }
+
+  function $(id){ return document.getElementById(id); }
+
+  function showStatus(message, type, duration){
+    logClient(type === 'error' ? 'error' : 'info', `Status update (${type})`, message);
+    var s = $("status");
+    if(s){
+      s.textContent = message;
+      s.className = 'status-' + type;
+      s.style.display = 'block';
+      if (duration > 0) {
+        setTimeout(function() {
+          if (s.textContent === message) {
+            s.textContent = '';
+            s.className = '';
+            s.style.display = 'none';
+          }
+        }, duration);
+      }
+    }
+  }
+
+  // Reset textarea content and validation UI
+  function resetJsonInput() {
+    const el = $("slideDataInput");
+    if (!el) return;
+    el.value = '';
+    const vs = $("validationStatus");
+    const vd = $("validationDetails");
+    if (vs) {
+      vs.innerHTML = '<span class="validation-icon material-icons">hourglass_empty</span><span class="validation-text">JSON形式をチェック中...</span>';
+    }
+    if (vd) vd.textContent = '';
+  }
+
+  function updateSeparatorStyles() {
+    const root = document.documentElement;
+    root.style.setProperty('--hr-width', $("hrWidth").value);
+    root.style.setProperty('--hr-height', $("hrHeight").value);
+    root.style.setProperty('--hr-margin-top', $("hrMarginTop").value);
+    root.style.setProperty('--hr-color', $("hrColorText").value);
+  }
+
+  function getCurrentSettings() {
+    const current = {
+      primaryColor: $("primaryColorText").value,
+      fontFamily: $("fontFamily").value,
+      footerText: $("footerText").value,
+      driveFolderUrl: $("driveFolderUrl").value,
+      showTitleUnderline: $("showTitleUnderline").checked,
+      showBottomBar: $("showBottomBar").checked,
+      showDateColumn: $("showDateColumn").checked,
+      enableGradient: $("enableGradient").checked,
+      gradientStart: $("gradientStartText").value,
+      gradientEnd: $("gradientEndText").value,
+      headerLogoUrl: $("headerLogoUrl").value,
+      closingLogoUrl: $("closingLogoUrl").value,
+      titleBgUrl: $("titleBgUrl").value,
+      sectionBgUrl: $("sectionBgUrl").value,
+      mainBgUrl: $("mainBgUrl").value,
+      closingBgUrl: $("closingBgUrl").value,
+      // Separator settings
+      hrWidth: $("hrWidth").value,
+      hrHeight: $("hrHeight").value,
+      hrMarginTop: $("hrMarginTop").value,
+      hrColor: $("hrColorText").value
+    };
+    // UIテーマ（CSS変数）とフォント設定の取り込み
+    try {
+      const theme = document.documentElement.getAttribute('data-theme') || 'light';
+      const styles = getComputedStyle(document.documentElement);
+      current.currentTheme = theme;
+      current.uiPrimaryColor = (styles.getPropertyValue('--md-sys-color-primary') || '').trim();
+      current.uiSecondaryColor = (styles.getPropertyValue('--md-sys-color-secondary') || '').trim();
+      current.uiBackgroundColor = (styles.getPropertyValue('--md-sys-color-background') || '').trim();
+      current.uiSurfaceColor = (styles.getPropertyValue('--md-sys-color-surface') || '').trim();
+      current.uiTextColor = (styles.getPropertyValue('--md-sys-color-on-background') || '').trim();
+      current.uiFontFamily = (styles.getPropertyValue('--font-family-sans') || '').trim();
+      current.displayFontFamily = 'Product Sans';
+      current.bodyFontFamily = $("fontFamily").value || 'Noto Sans JP';
+    } catch (e) { /* ignore */ }
+    logClient('debug', 'Current form settings captured', current);
+    return current;
+  }
+
+  function applyAllSettings(settings) {
+    logClient('info', 'Applying settings to form', { keys: Object.keys(settings || {}) });
+    $("primaryColor").value = settings.primaryColor || "#4285F4";
+    $("primaryColorText").value = settings.primaryColor || "#4285F4";
+    $("fontFamily").value = settings.fontFamily || "Product Sans";
+    $("footerText").value = settings.footerText || "";
+    $("driveFolderUrl").value = settings.driveFolderUrl || "";
+    $("showTitleUnderline").checked = settings.showTitleUnderline !== false;
+    $("showBottomBar").checked = settings.showBottomBar !== false;
+    $("showDateColumn").checked = settings.showDateColumn !== false;
+    $("enableGradient").checked = settings.enableGradient || false;
+    $("gradientStart").value = settings.gradientStart || "#4285F4";
+    $("gradientStartText").value = settings.gradientStart || "#4285F4";
+    $("gradientEnd").value = settings.gradientEnd || "#34A853";
+    $("gradientEndText").value = settings.gradientEnd || "#34A853";
+    $("headerLogoUrl").value = settings.headerLogoUrl || "";
+    $("closingLogoUrl").value = settings.closingLogoUrl || "";
+    $("titleBgUrl").value = settings.titleBgUrl || "";
+    $("sectionBgUrl").value = settings.sectionBgUrl || "";
+    $("mainBgUrl").value = settings.mainBgUrl || "";
+    $("closingBgUrl").value = settings.closingBgUrl || "";
+
+    // Separator settings
+    $("hrWidth").value = settings.hrWidth || "80px";
+    $("hrHeight").value = settings.hrHeight || "4px";
+    $("hrMarginTop").value = settings.hrMarginTop || "16px";
+    $("hrColor").value = settings.hrColor || "#4285F4";
+    $("hrColorText").value = settings.hrColor || "#4285F4";
+    
+    toggleGradientOptions();
+    updateGradientPreview();
+    updateSeparatorStyles();
+    // UIテーマ設定の適用（任意値があればCSS変数へ反映）
+    try {
+      if (settings && (settings.currentTheme === 'light' || settings.currentTheme === 'dark')) {
+        applyTheme(settings.currentTheme);
+      }
+      const root = document.documentElement;
+      if (settings && settings.uiPrimaryColor) root.style.setProperty('--md-sys-color-primary', settings.uiPrimaryColor);
+      if (settings && settings.uiSecondaryColor) root.style.setProperty('--md-sys-color-secondary', settings.uiSecondaryColor);
+      if (settings && settings.uiBackgroundColor) root.style.setProperty('--md-sys-color-background', settings.uiBackgroundColor);
+      if (settings && settings.uiSurfaceColor) root.style.setProperty('--md-sys-color-surface', settings.uiSurfaceColor);
+      if (settings && settings.uiTextColor) root.style.setProperty('--md-sys-color-on-background', settings.uiTextColor);
+    } catch (e) { /* ignore */ }
+  }
+
+  // getAllSettings: フォーム値 + UIテーマ情報を統合
+  function getAllSettings() {
+    return getCurrentSettings();
+  }
+
+  function generate() {
+    var startTime = Date.now();
+    var timerId = null;
+    var generateBtn = $("generateBtn");
+    var slideDataString = $("slideDataInput").value;
+
+    logClient('info', 'Generate requested', { chars: slideDataString.length });
+
+    if (!slideDataString.trim()) {
+      showStatus('エラー: スライドデータが空です。', 'error', 5000);
+      return;
+    }
+    try {
+      // 共通パーサで厳格に検証（メッセージをサーバーと統一）
+      SlideDataParser.parseStrict(slideDataString);
+    } catch (e) {
+      showStatus('エラー: JSON形式が正しくありません。' + e.message, 'error', 5000);
+      logClient('error', 'JSON parse failed', e.message);
+      return;
+    }
+    
+    var settings = getCurrentSettings();
+
+    function extractFolderIdFromUrl(url) {
+      if (!url || !url.trim()) return '';
+      var patterns = [ /\/drive\/folders\/([a-zA-Z0-9_-]+)/, /id=([a-zA-Z0-9_-]+)/ ];
+      for (var i = 0; i < patterns.length; i++) {
+        var match = url.match(patterns[i]);
+        if (match && match[1]) return match[1];
+      }
+      return url.trim();
+    }
+    
+    var extractedId = extractFolderIdFromUrl(settings.driveFolderUrl);
+
+    if (settings.driveFolderUrl && !extractedId) {
+      showStatus('エラー: 正しいGoogleドライブフォルダURLまたはIDを入力してください。', 'error', 5000);
+      return;
+    }
+    settings.driveFolderId = extractedId;
+
+    if (!isGasRuntimeAvailable) {
+      showStatus('エラー: Google Apps Script の実行環境外ではスライドを生成できません。', 'error', 8000);
+      logClient('error', 'GAS runtime unavailable during generate');
+      return;
+    }
+
+    generateBtn.disabled = true;
+    showStatus('スライドを生成しています... 0秒', 'loading');
+    timerId = setInterval(function(){
+      var elapsed = Math.floor((Date.now() - startTime) / 1000);
+      var s = $("status");
+      if (s) {
+        s.textContent = 'スライドを生成しています... ' + elapsed + '秒';
+        s.className = 'status-loading';
+      }
+    }, 1000);
+
+    google.script.run
+      .withSuccessHandler(function(presentationUrl) {
+        if (timerId) { clearInterval(timerId); timerId = null; }
+        var elapsed = Math.round((Date.now() - startTime) / 1000);
+        
+        var statusDiv = $("status");
+        statusDiv.innerHTML = '🎉 生成が完了しました！（' + elapsed + '秒）<br>';
+        var link = document.createElement('a');
+        link.href = presentationUrl;
+        link.textContent = '生成されたスライドを開く';
+        link.target = '_blank';
+        statusDiv.appendChild(link);
+        statusDiv.className = 'status-success';
+        generateBtn.disabled = false;
+        logClient('info', 'Slide generation success', { elapsed, presentationUrl });
+      })
+      .withFailureHandler(function(error) {
+        if (timerId) { clearInterval(timerId); timerId = null; }
+        var elapsed = Math.round((Date.now() - startTime) / 1000);
+        showStatus('❌ エラーが発生しました（' + elapsed + '秒）: ' + error.message, 'error');
+        generateBtn.disabled = false;
+        logClient('error', 'Slide generation failed', { elapsed, error: error.message });
+      })
+      .generateSlidesFromWebApp(slideDataString, settings);
+  }
+
+  function toggleGradientOptions() {
+    var optionsDiv = $("gradient-options");
+    if ($("enableGradient").checked) {
+      optionsDiv.style.display = 'block';
+    } else {
+      optionsDiv.style.display = 'none';
+    }
+  }
+
+  function loadSettingsToForm() {
+    if (loadedSettings && typeof loadedSettings === 'object') {
+      applyAllSettings(loadedSettings);
+    }
+  }
+
+  function loadUserPresets() {
+    const presetsKey = 'slideFactory_presets_v2';
+    return JSON.parse(localStorage.getItem(presetsKey) || '{}');
+  }
+
+  function saveUserPresets(presets) {
+    const presetsKey = 'slideFactory_presets_v2';
+    localStorage.setItem(presetsKey, JSON.stringify(presets));
+  }
+
+  function persistSelectedPreset(presetName) {
+    const normalizedName = (presetName || '').trim();
+    loadedSettings.selectedPreset = normalizedName;
+
+    if (!isGasRuntimeAvailable || !google.script || !google.script.run ||
+        typeof google.script.run.saveSelectedPreset !== 'function') {
+      logClient('debug', 'Skipped persisting preset (GAS runtime unavailable)', { normalizedName });
+      return;
+    }
+
+    try {
+      google.script.run
+        .withSuccessHandler(function() {
+          logClient('info', 'Persisted selected preset', { preset: normalizedName });
+        })
+        .withFailureHandler(function(error) {
+          logClient('warn', 'Failed to persist selected preset', error && error.message);
+        })
+        .saveSelectedPreset(normalizedName);
+    } catch (error) {
+      logClient('warn', 'Exception while persisting selected preset', error && error.message);
+    }
+  }
+
+  function updatePresetSelect() {
+    const presets = loadUserPresets();
+    const select = $("presetSelect");
+
+    select.innerHTML = '<option value="">プリセットを選択...</option>';
+
+    Object.keys(presets).forEach(name => {
+      const option = document.createElement('option');
+      option.value = name;
+      option.textContent = name;
+      select.appendChild(option);
+    });
+
+    const desired = loadedSettings && loadedSettings.selectedPreset;
+    if (desired && presets[desired]) {
+      select.value = desired;
+    }
+  }
+
+  function saveCurrentPreset() {
+    const presets = loadUserPresets();
+    const name = prompt('プリセット名を入力してください:');
+    if (!name || !name.trim()) return;
+    
+    if (Object.keys(presets).length >= 5 && !presets[name]) {
+      alert('プリセットは最大5つまで保存できます。');
+      return;
+    }
+    
+    presets[name.trim()] = getAllSettings();
+    saveUserPresets(presets);
+    updatePresetSelect();
+    $("presetSelect").value = name.trim();
+    persistSelectedPreset(name.trim());
+    showStatus(`✅ プリセット「${name.trim()}」を保存しました`, 'success', 3000);
+  }
+
+  function loadSelectedPreset(presetName) {
+    const targetPreset = typeof presetName === 'string' ? presetName : $("presetSelect").value;
+    if (!targetPreset) {
+      if (loadedSettings.selectedPreset) {
+        persistSelectedPreset('');
+      }
+      return;
+    }
+
+    const presets = loadUserPresets();
+    const settings = presets[targetPreset];
+
+    if (settings) {
+      if ((loadedSettings.selectedPreset || '') !== (targetPreset || '')) {
+        persistSelectedPreset(targetPreset);
+      }
+      applyAllSettings(settings);
+      loadedSettings.selectedPreset = targetPreset;
+      showStatus(`✅ プリセット「${targetPreset}」を適用しました`, 'success', 3000);
+    } else {
+      persistSelectedPreset('');
+      showStatus(`⚠️ プリセット「${targetPreset}」が見つかりません`, 'error', 4000);
+    }
+  }
+
+  function validateJSON() {
+    const textarea = $("slideDataInput");
+    const statusIcon = document.querySelector('#validationStatus .validation-icon');
+    const statusText = document.querySelector('#validationStatus .validation-text');
+    const details = $("validationDetails");
+    
+    const jsonText = textarea.value.trim();
+    
+    if (!jsonText) {
+      statusIcon.textContent = 'hourglass_empty';
+      statusText.textContent = 'JSON入力待機中...';
+      details.style.display = 'none';
+      return;
+    }
+    
+    try {
+      const parsed = SlideDataParser.parseStrict(jsonText);
+      statusIcon.textContent = 'check_circle';
+      statusIcon.style.color = 'var(--google-green)';
+      statusText.textContent = `JSON形式: 正常 (${parsed.length}枚のスライド)`;
+      details.style.display = 'none';
+      
+    } catch (error) {
+      statusIcon.textContent = 'error';
+      statusIcon.style.color = 'var(--google-red)';
+      statusText.textContent = 'JSON形式: エラー';
+      details.className = 'validation-details validation-error';
+      details.textContent = error.message;
+      details.style.display = 'block';
+    }
+  }
+
+  function updateGradientPreview() {
+    const startColor = $("gradientStartText").value;
+    const endColor = $("gradientEndText").value;
+    const preview = $("gradientPreview");
+    if (preview) {
+      preview.style.background = `linear-gradient(135deg, ${startColor}, ${endColor})`;
+    }
+  }
+
+  function openUrl(url) {
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  }
+
+  // UIテーマ変更とスライド生成設定の同期
+  function syncThemeWithSlideGeneration() {
+    if (!isGasRuntimeAvailable) return;
+    const settings = getAllSettings();
+    try {
+      google.script.run
+        .withSuccessHandler(function(){ logClient('info', 'Synced theme to server'); })
+        .withFailureHandler(function(e){ logClient('warn', 'Sync failed', e && e.message); })
+        .saveSettings(settings);
+    } catch (e) { /* ignore */ }
+  }
+
+  // 既存スライドのテーマを更新
+  function refreshExistingSlides() {
+    if (!isGasRuntimeAvailable) return;
+    const settings = getAllSettings();
+    const startTime = Date.now();
+    let timerId = null;
+    showStatus('既存スライドのテーマを更新中... 0秒', 'loading');
+    timerId = setInterval(function(){
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const s = $('status');
+      if (s) {
+        s.textContent = 'テーマを更新中... ' + elapsed + '秒';
+        s.className = 'status-loading';
+      }
+    }, 1000);
+    try {
+      google.script.run
+        .withSuccessHandler(function(result){
+          if (timerId) { clearInterval(timerId); timerId = null; }
+          showStatus('🎉 既存スライドのテーマ更新が完了しました。', 'success', 4000);
+          logClient('info', 'updateExistingSlides success', result || {});
+        })
+        .withFailureHandler(function(error){
+          if (timerId) { clearInterval(timerId); timerId = null; }
+          showStatus('❌ テーマ更新中にエラー: ' + (error && error.message ? error.message : 'unknown'), 'error');
+          logClient('error', 'updateExistingSlides failure', error && error.message);
+        })
+        .updateExistingSlides(settings);
+    } catch (e) {
+      if (timerId) { clearInterval(timerId); timerId = null; }
+      showStatus('❌ テーマ更新の呼び出しに失敗しました: ' + e.message, 'error');
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize theme first
+    initializeTheme();
+    
+    loadSettingsToForm();
+    logClient('info', 'DOMContentLoaded initialised');
+
+    $("generateBtn").addEventListener('click', generate);
+    
+    $("themeColorToggle").addEventListener('click', cycleThemeColor);
+
+    // Theme toggle event listener (sync settings)
+    $("themeToggle").addEventListener('click', function(){
+      toggleUITheme();
+      syncThemeWithSlideGeneration();
+    });
+
+    ['primaryColor', 'gradientStart', 'gradientEnd', 'hrColor'].forEach(id => {
+      $(id).addEventListener('input', function() { $(id + 'Text').value = this.value; if(id.includes('hr')) updateSeparatorStyles(); });
+      $(id + 'Text').addEventListener('input', function() { $(id).value = this.value; if(id.includes('hr')) updateSeparatorStyles(); });
+    });
+
+    ['hrWidth', 'hrHeight', 'hrMarginTop'].forEach(id => {
+      $(id).addEventListener('input', updateSeparatorStyles);
+    });
+
+    $("enableGradient").addEventListener('change', toggleGradientOptions);
+    toggleGradientOptions();
+    
+    $("slideDataInput").addEventListener('input', validateJSON);
+    
+    $("presetSelect").addEventListener('change', function() {
+      const selectedName = this.value;
+      persistSelectedPreset(selectedName);
+      if (selectedName) {
+        loadSelectedPreset(selectedName);
+      }
+    });
+
+    $("savePreset").addEventListener('click', saveCurrentPreset);
+    const resetBtn = $("resetJsonBtn");
+    if (resetBtn) resetBtn.addEventListener('click', resetJsonInput);
+    
+    $("openFolderBtn").addEventListener('click', () => openUrl($("driveFolderUrl").value.trim()));
+    
+    document.querySelectorAll('.url-input-wrapper .btn-secondary').forEach(button => {
+      button.addEventListener('click', function() {
+        const input = this.previousElementSibling;
+        if (input) openUrl(input.value.trim());
+      });
+    });
+
+    validateJSON();
+    updateGradientPreview();
+    updatePresetSelect();
+    updateSeparatorStyles();
+    
+    // 既存スライド更新ボタン
+    const refreshBtn = $("refreshSlidesBtn");
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', refreshExistingSlides);
+    }
+    
+    // 色・フォント変更時の自動同期
+    const fontEl = $("fontFamily");
+    if (fontEl) {
+      fontEl.addEventListener('change', syncThemeWithSlideGeneration);
+      fontEl.addEventListener('input', syncThemeWithSlideGeneration);
+    }
+    const primaryTextEl = $("primaryColorText");
+    if (primaryTextEl) {
+      primaryTextEl.addEventListener('change', syncThemeWithSlideGeneration);
+      primaryTextEl.addEventListener('input', syncThemeWithSlideGeneration);
+    }
+
+    if (!isGasRuntimeAvailable) {
+      const warningMessage = '注意: このページは Google Apps Script の Web アプリとして実行したときのみ動作します。開発者サーバーやローカルプレビューでは UI だけが表示されます。';
+      showStatus(warningMessage, 'error', 0);
+      $("generateBtn").disabled = true;
+      logClient('warn', 'Running without GAS runtime');
+    }
+
+  document.querySelectorAll('.collapsible-header').forEach(header => {
+      header.addEventListener('click', function() {
+        const content = this.nextElementSibling;
+        this.classList.toggle('active');
+        content.classList.toggle('active');
+        const icon = this.querySelector('.collapsible-icon');
+        icon.textContent = this.classList.contains('active') ? 'expand_less' : 'expand_more';
+      });
+    });
+  });
