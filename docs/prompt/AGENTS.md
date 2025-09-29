@@ -1,4 +1,4 @@
-# Apple_Majin Agent Guide
+# Majin_Prompt_v3 Agent Guide
 
 ## プロジェクト概要
 - Google Apps Script を `clasp` で管理するリポジトリです。
