@@ -39,7 +39,7 @@ To use this project, you need to have Node.js and the `clasp` CLI installed.
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/your-username/Apple_Majin.git
+    git clone https://github.com/path-finder2002/Majin_Prompt_v3.git
     ```
 2.  **Install dependencies:**
     ```bash
@@ -63,7 +63,7 @@ To use this project, you need to have Node.js and the `clasp` CLI installed.
 
 1.  **リポジトリをクローンします:**
     ```bash
-    git clone https://github.com/your-username/Apple_Majin.git
+    git clone https://github.com/path-finder2002/Majin_Prompt_v3.git
     ```
 2.  **依存関係をインストールします:**
     ```bash
